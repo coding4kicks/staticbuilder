@@ -309,7 +309,7 @@ def help():
 
 def exit(msg):
     print msg
-    sys.exit()
+    sys.exit(1)
 
 def main():
 
@@ -326,19 +326,19 @@ def main():
     elif path_in == "-help" or path_in == "--help" or path_in == "help":
         print "Requesting help"
         help()
-        sys.exit()
+        sys.exit(2)
 
     # Check if path exists
     elif not os.path.exists(path_in):
         print "Local path doesn't exist"
         help()
-        sys.exit()
+        sys.exit(1)
 
     # Make sure website is boolean
     if not (website == None or website == True or website == False):
         print "Website is a boolean"
         help()
-        sys.exit()
+        sys.exit(3)
 
     # path_in exists so create and run builder
     sb = StaticBuilder(path_in, path_out, website)
