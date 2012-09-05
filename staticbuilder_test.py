@@ -17,11 +17,11 @@ def test():
     #print "Testing with no arguments."
 
     # Test bad local path.
-    #print "Testing bad local path"
-    #cmd = "python staticbuilder.py \
-    #       ~/projects/staticbuilder/sb_test_bucket/file0.txt"
-    #ret = subprocess.call(cmd, shell=True)
-    #assert ret == 2
+    print "Testing bad local path"
+    cmd = "python staticbuilder.py \
+           ~/projects/staticbuilder/sb_test_bucket/file0.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 2
 
     # Test that an absolute file path in works.
     print "Testing single in path, absolute."
@@ -31,24 +31,26 @@ def test():
     assert ret == 0
 
     # Test that a relative file path in works.
-    #print "Testing single in path, relative."
-    #cmd = "python staticbuilder.py \
-    #       sb_test_bucket/testdir1/testfile1.txt"
-    #ret = subprocess.call(cmd, shell=True)
-    #assert ret == 0
+    print "Testing single in path, relative."
+    cmd = "python staticbuilder.py \
+           sb_test_bucket/testdir1/testfile1.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
 
     # Test that out path works.
-    #print "Testing out path."
-    #cmd = "python staticbuilder.py \
-    #       sb_test_bucket/testdir1/testfile1.txt sb_test_bucket"
-    #ret = subprocess.call(cmd, shell=True)
-    #assert ret == 0
+    print "Testing out path."
+    cmd = "python staticbuilder.py \
+           sb_test_bucket/testdir1/testfile1.txt sb_test_bucket"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
 
 
     # Test that two in paths work.
-    #print "Testing in path only, relative."
-    #cmd = "python staticbuilder.py \
-    #       sb_test_bucket/testfile0.txt sb_test_bucket/testfile00.txt"
+    print "Testing two in paths."
+    cmd = "python staticbuilder.py \
+           sb_test_bucket/testfile2in1.txt \
+           sb_test_bucket/testfile2in2.txt \
+           sb_test_bucket/testfile00.txt"
     #ret = subprocess.call(cmd, shell=True)
     #assert ret == 0
 
