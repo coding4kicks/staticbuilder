@@ -24,14 +24,14 @@ class StaticBuilder(object):
     def __init__(self, paths_in=None, path_out=None, options=None):
         """ Validate paths_in, path_out, and AWS credentials, and set config/ignore 
             TODO: only check aws credentials and load config/ingore info in _init_
-            paths_in is either a single file or directory, or a lists of files and directories
+            paths_in is either a single file or directory,
+            or a lists of files and directories
             if path_out is not specified, a bucket name must exist in path in.
         """
 
         self.paths_in = paths_in
         self.path_out = path_out
         self.options = options
-        #self.key_name = ""
 
         # NEED TO REFACTOR TO CONFIG DICTIONARY
         # set ignore patterns
@@ -81,7 +81,7 @@ class StaticBuilder(object):
         # If path_out exists check it for a bucket name
         if self.path_out:
             normal_path = os.path.normpath(self.path_out)
-            bucketname, d, key_name = normal_path.partition("/")  ####
+            bucketname, d, key_name = normal_path.partition("/")
             for bucket in buckets:
                 if bucket.name == bucketname:
                     bucket_name = bucketname
@@ -89,7 +89,8 @@ class StaticBuilder(object):
             # If no bucket, ask if wish to create with first path part
             if not bucket_name:
                 print "Specified path out doesn't contain a bucket name"
-                create = raw_input('Would you like to create a bucket named "' + bucketname + '" [y/n]: ')
+                create = raw_input('Would you like to create a bucket named "' + 
+                                    bucketname + '" [y/n]: ')
                 if not create == 'y' or create == 'yes':
                     print "No buckets to create, terminating."
                     sys.exit(0)
@@ -103,7 +104,7 @@ class StaticBuilder(object):
             # If no there path_out check path_in parts for a bucket name
             if not self.path_out:
                 
-                # Create a empty first file to add parts to
+                # Create an empty first file to add parts to
                 files.append("")
 
                 # Split apart path_in and check-for/set bucket name
@@ -129,7 +130,8 @@ class StaticBuilder(object):
                         print "Must give a bucket name with a file"
                         sys.exit(1)
                     else:
-                        create = raw_input('Would you like to create a bucket named "' + tail + '" [y/n]: ')
+                        create = raw_input('Would you like to create a bucket named "' + 
+                                            tail + '" [y/n]: ')
                         if not create == 'y' or create == 'yes':
                             print "No buckets to create, terminating."
                             sys.exit(1)
@@ -137,7 +139,8 @@ class StaticBuilder(object):
                             bucket_name = tail
                             connection.create_bucket(bucket_name)
                 
-                # Since there is no path_out there must be only 1 path_in so break out of for loop
+                # Since there is no path_out there must
+                # be only 1 path_in so break out of for loop
                 break
 
             # Pull apart the path_in
@@ -163,7 +166,14 @@ class StaticBuilder(object):
             else:
                 temp_files = fileList(path, folders=self.options.recursive)
                 for file in temp_files:
-                    path_in[file] = os.path.join(path, file)
+                    temp_path_in = file
+                    file = file.replace(head + "/", "")
+                    #file = os.path.join(head, file)
+                    print file
+                    print path
+                    print head
+                    print tail
+                    path_in[file] = temp_path_in
                     files.append(file)
             
         print files
@@ -176,7 +186,7 @@ class StaticBuilder(object):
 
         # Upload all the files
         for file in files:
-            key = os.path.join(key_name, file)  #####
+            key = os.path.join(key_name, file)
 
             print "key: " + key
             
@@ -212,26 +222,21 @@ class StaticBuilder(object):
                 k.set_contents_from_filename(file_name)
                 print "finished"
 
+# TODO: make helper functions module private
 def fileList(paths, relative=False, folders=False):
-    """
-        Generate a recursive list of files from a given path.
-    """
+    """ Generate a recursive list of files from a given path. """
 
     if not type(paths) == types.ListType:
         paths = [paths]
 
     files = []
-
     for path in paths: 
         if os.path.isdir(path):
             for fileName in os.listdir(path):
-
                 # Ignore hidden files
                 if fileName.startswith('.'):
                     continue
-
-                filePath = os.path.join(path, fileName)
-            
+                filePath = os.path.join(path, fileName)            
                 if os.path.isdir(filePath):
                     if folders:
                         files.append(filePath)
@@ -240,28 +245,12 @@ def fileList(paths, relative=False, folders=False):
                     files.append(filePath)
         else:
             files.append(path)
+
         # TODO - remove or use?
         if relative:
              files = map(lambda x: x[len(path)+1:], files)
 
     return files
-
-# TODO: make helper functions module private
-def help():
-    print
-    print 'Usage: staticbuilder [path_in] [path_out] [website boolean]'
-    print
-    print ' path_in: Directory or file location to upload to S3'
-    print '     (Defaults to current working directory.'
-    print '      Directories upload recuresively)'
-    print ' path_out: Optional name of S3 bucket path.'
-    print '     (Defaults to dicrectory or file name in path'
-    print ' website: If true saves directory as public website'
-    print 
-
-def exit(msg):
-    print msg
-    sys.exit(1)
 
 def main():
 
