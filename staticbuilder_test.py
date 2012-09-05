@@ -44,8 +44,7 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
-
-    # Test that two in paths work.
+    # Test that two in-paths work.
     print "Testing two in paths."
     cmd = "python staticbuilder.py \
            sb_test_bucket/testfile2in1.txt \
@@ -54,6 +53,18 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
+    # Test that three in-paths work - no more after this!.
+    print "Testing three in paths."
+    cmd = "python staticbuilder.py \
+           sb_test_bucket/testdir1/testfile3in1.txt \
+           sb_test_bucket/testdir1/testfile3in2.txt \
+           sb_test_bucket/testfile3in3.txt \
+           sb_test_bucket/testdir1/"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
+    # Test a directory - not recursive
+    print "Testing directory"
 
 
 
