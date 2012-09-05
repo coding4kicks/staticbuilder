@@ -11,18 +11,15 @@ import boto
 from boto.s3.key import Key
 
 class StaticBuilder(object):
-    """ Static Builder
-        Mo' Static, Less Hassle
+    """ Static Builder - "Mo' Static, Less Hassle"
 
         Uploads contents to S3. Similar to unix cp.
         Can operate recusively on directories.  
         Checks hash so as to only upload modified content.
         Import and use as an object or run from the command line.
-
-        Only dependency is boto
-        https://github.com/boto/boto
+        Plenty of options to manage your static content.
+        Only dependency is boto - https://github.com/boto/boto
     """
-
 
     def __init__(self, paths_in=None, path_out=None, options=None):
         """ Validate paths_in, path_out, and AWS credentials, and set config/ignore 
@@ -34,8 +31,7 @@ class StaticBuilder(object):
         self.paths_in = paths_in
         self.path_out = path_out
         self.options = options
-#        self.bucket_name = None
-        self.key_name = ""
+        #self.key_name = ""
 
         # NEED TO REFACTOR TO CONFIG DICTIONARY
         # set ignore patterns
@@ -70,15 +66,13 @@ class StaticBuilder(object):
             print ('Invalid login credentials, must set in .bashrc')
             sys.exit(2)
 
-
     def upload(self):
         """ Upload files to S3 """
 
-        files = []          # file name
-        path_in = {}        # local path for file
-        key_path = ""       # key part of path out
-        bucket_name = None    #
-
+        files = []          # file name to save to AWS
+        path_in = {}        # local path to file
+        key_name = ""       # Extra key info to add to each file
+        bucket_name = None  # Bucket to save files to
 
         # Connect to S3 and get the buckets
         connection = boto.connect_s3()
@@ -87,54 +81,51 @@ class StaticBuilder(object):
         # If path_out exists check it for a bucket name
         if self.path_out:
             normal_path = os.path.normpath(self.path_out)
-            bucketname, d, self.key_name = normal_path.partition("/")
+            bucketname, d, key_name = normal_path.partition("/")  ####
             for bucket in buckets:
                 if bucket.name == bucketname:
-                    bucket_name = bucketname #####
+                    bucket_name = bucketname
 
             # If no bucket, ask if wish to create with first path part
-            if not bucket_name: #####
+            if not bucket_name:
                 print "Specified path out doesn't contain a bucket name"
                 create = raw_input('Would you like to create a bucket named "' + bucketname + '" [y/n]: ')
                 if not create == 'y' or create == 'yes':
                     print "No buckets to create, terminating."
                     sys.exit(0)
                 else:
-                    bucket_name = bucketname #####
-                    connection.create_bucket(bucket_name) #####
+                    bucket_name = bucketname
+                    connection.create_bucket(bucket_name)
 
         # Upload each path_in
         for path in self.paths_in:
 
-            # If no path_out then only one path in, so check path_in parts for a bucket name
+            # If no there path_out check path_in parts for a bucket name
             if not self.path_out:
                 
                 # Create a empty first file to add parts to
                 files.append("")
 
-                # Normalize path_in
+                # Split apart path_in and check-for/set bucket name
                 normal_path = os.path.normpath(self.paths_in[0])
-
-                # Split path_in check for bucket name
                 path_parts = normal_path.split("/")
-
-                #print path_parts
                 for path_part in path_parts:
-                    #print path_part
-
-                    if bucket_name == None: #####
+                    if bucket_name == None:
                         for bucket in buckets:
-                            #print bucket.name
                             if path_part == bucket.name:
-                                bucket_name = bucket.name ####
+                                bucket_name = bucket.name
                     else:
                         # Once found bucket name, remaining parts of path are are the key
                         files[0] = os.path.join(files[0], path_part)
             
+                # Set path to local file
                 path_in[files[0]] = path
-                # If still no bucket name, then error if file, else ask to create
+
+                # If still no bucket name, then error if it's a file, 
+                # otherwise ask if they wish to create a bucket with the
+                # same name as the directory
                 if not bucket_name:
-                    if not self.is_dir:  #### NEEED TO FIX
+                    if os.path.isfile(path):
                         print "Must give a bucket name with a file"
                         sys.exit(1)
                     else:
@@ -143,13 +134,13 @@ class StaticBuilder(object):
                             print "No buckets to create, terminating."
                             sys.exit(1)
                         else:
-                            bucket_name = tail #####
-                            connection.create_bucket(bucket_name)  #####
+                            bucket_name = tail
+                            connection.create_bucket(bucket_name)
                 
-                # Since no path_out, only 1 path_in so break out of for loop
+                # Since there is no path_out there must be only 1 path_in so break out of for loop
                 break
 
-            # Pull apart the path_in and set local path and file/key name
+            # Pull apart the path_in
             # file          => head=None , tail=file
             # path/in/file  => head=path/in/ , tail=file
             # path/in       => head=path/ , tail=in (dir)
@@ -180,12 +171,12 @@ class StaticBuilder(object):
 
         cwd = os.getcwd()
 
-        print 'Adding to bucket: ' + bucket_name #####
-        bucket = connection.get_bucket(bucket_name) #####
+        print 'Adding to bucket: ' + bucket_name
+        bucket = connection.get_bucket(bucket_name)
 
         # Upload all the files
         for file in files:
-            key = os.path.join(self.key_name, file)  ####
+            key = os.path.join(key_name, file)  #####
 
             print "key: " + key
             
