@@ -65,6 +65,11 @@ def test():
 
     # Test a directory - not recursive
     print "Testing directory"
+    cmd = "python staticbuilder.py \
+           sb_test_bucket/testdir1/testdir2 \
+           sb_test_bucket/testdir1/"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
 
 
 
