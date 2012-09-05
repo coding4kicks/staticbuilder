@@ -8,7 +8,7 @@ def test():
        Checks SB both as imported object and command line utility.
        Test paths must be set up correctly:
        sb_test_bucket -> testfile0.txt, testdir1 -> 
-       testfile1.txt, testdir2 -> testfile3.txt
+       testfile1.txt, testdir2 -> testfile3.txt (TODO: UPDATE)
     """
 
     print "Testing SB from the command line"
@@ -50,9 +50,9 @@ def test():
     cmd = "python staticbuilder.py \
            sb_test_bucket/testfile2in1.txt \
            sb_test_bucket/testfile2in2.txt \
-           sb_test_bucket/testfile00.txt"
-    #ret = subprocess.call(cmd, shell=True)
-    #assert ret == 0
+           sb_test_bucket"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
 
 
 

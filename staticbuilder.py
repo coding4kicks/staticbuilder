@@ -413,7 +413,7 @@ def main():
     if len(args) > 2:
         for arg in args:
             paths_in.append(arg)
-        path_out = path_in.pop() # last item is path_out
+        path_out = paths_in.pop() # last item is path_out
     else:
         paths_in.append(args[0]) if len(args) > 0 else None
         path_out = args[1] if len(args) == 2 else None
