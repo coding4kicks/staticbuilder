@@ -34,7 +34,7 @@ class StaticBuilder(object):
         self.paths_in = paths_in
         self.path_out = path_out
         self.options = options
-        self.bucket_name = None
+#        self.bucket_name = None
         self.key_name = ""
 
         # NEED TO REFACTOR TO CONFIG DICTIONARY
@@ -74,10 +74,15 @@ class StaticBuilder(object):
     def upload(self):
         """ Upload files to S3 """
 
+        files = []          # file name
+        path_in = {}        # local path for file
+        key_path = ""       # key part of path out
+        bucket_name = None    #
+
+
         # Connect to S3 and get the buckets
         connection = boto.connect_s3()
         buckets = connection.get_all_buckets()
-
 
         # If path_out exists check it for a bucket name
         if self.path_out:
@@ -85,32 +90,27 @@ class StaticBuilder(object):
             bucketname, d, self.key_name = normal_path.partition("/")
             for bucket in buckets:
                 if bucket.name == bucketname:
-                    self.bucket_name = bucketname
+                    bucket_name = bucketname #####
 
-            if not self.bucket_name:
+            # If no bucket, ask if wish to create with first path part
+            if not bucket_name: #####
                 print "Specified path out doesn't contain a bucket name"
                 create = raw_input('Would you like to create a bucket named "' + bucketname + '" [y/n]: ')
                 if not create == 'y' or create == 'yes':
                     print "No buckets to create, terminating."
                     sys.exit(0)
                 else:
-                    self.bucket_name = bucketname
-                    connection.create_bucket(self.bucket_name)
+                    bucket_name = bucketname #####
+                    connection.create_bucket(bucket_name) #####
 
-        # Get the bucket if it exists
-        if self.bucket_name:
-            bucket = connection.get_bucket(self.bucket_name)
-
-        files = []
-        path_in = {}
+        # Upload each path_in
         for path in self.paths_in:
 
             # If no path_out then only one path in, so check path_in parts for a bucket name
             if not self.path_out:
-                self.key_name = ""
-                self.bucket_name = None
+                
+                # Create a empty first file to add parts to
                 files.append("")
-                connection = boto.connect_s3()
 
                 # Normalize path_in
                 normal_path = os.path.normpath(self.paths_in[0])
@@ -122,34 +122,34 @@ class StaticBuilder(object):
                 for path_part in path_parts:
                     #print path_part
 
-                    if self.bucket_name == None:
+                    if bucket_name == None: #####
                         for bucket in buckets:
                             #print bucket.name
                             if path_part == bucket.name:
-                                self.bucket_name = bucket.name
+                                bucket_name = bucket.name ####
                     else:
                         # Once found bucket name, remaining parts of path are are the key
                         files[0] = os.path.join(files[0], path_part)
             
                 path_in[files[0]] = path
                 # If still no bucket name, then error if file, else ask to create
-                if not self.bucket_name:
-                    if not self.is_dir:
+                if not bucket_name:
+                    if not self.is_dir:  #### NEEED TO FIX
                         print "Must give a bucket name with a file"
-                        help()
-                        sys.exit()
+                        sys.exit(1)
                     else:
                         create = raw_input('Would you like to create a bucket named "' + tail + '" [y/n]: ')
                         if not create == 'y' or create == 'yes':
                             print "No buckets to create, terminating."
-                            help()
-                            sys.exit()
+                            sys.exit(1)
                         else:
-                            self.bucket_name = tail
-                            connection.create_bucket(self.bucket_name)
+                            bucket_name = tail #####
+                            connection.create_bucket(bucket_name)  #####
                 
+                # Since no path_out, only 1 path_in so break out of for loop
                 break
 
+            # Pull apart the path_in and set local path and file/key name
             # file          => head=None , tail=file
             # path/in/file  => head=path/in/ , tail=file
             # path/in       => head=path/ , tail=in (dir)
@@ -157,9 +157,8 @@ class StaticBuilder(object):
             # never a slash in tail: empty if path ends in /
             head, tail = os.path.split(path)
  
-            # if no path out, then only one path in
-
-            # if tail is empty then path is a directory so remove / and split again
+            # if tail is empty then path is a directory 
+            # so remove / and split again
             if tail == "":
                 path = path.rstrip('/')
                 head, tail = os.path.split(path)
@@ -181,11 +180,12 @@ class StaticBuilder(object):
 
         cwd = os.getcwd()
 
-        print 'Adding to bucket: ' + self.bucket_name
-        bucket = connection.get_bucket(self.bucket_name)
+        print 'Adding to bucket: ' + bucket_name #####
+        bucket = connection.get_bucket(bucket_name) #####
 
+        # Upload all the files
         for file in files:
-            key = os.path.join(self.key_name, file)
+            key = os.path.join(self.key_name, file)  ####
 
             print "key: " + key
             
