@@ -5,6 +5,7 @@ import sys
 import os
 import types
 import fnmatch
+from optparse import OptionParser
 
 import boto
 from boto.s3.key import Key
@@ -20,27 +21,25 @@ class StaticBuilder(object):
         Uploads contents to S3.  Operates recusively on directories.  
         Checks hash so as to only upload modified content.
         Import and use as an object or run from the command line.
-        KISS - keep it simple stupid.
 
         Only dependency is boto
         https://github.com/boto/boto
-
-        Credits to Koen Bok - a few snippets were taken from cactus
-        https://github.com/koenbok/Cactus/tree/master/cactus
     """
 
 
-    def __init__(self, path_in, path_out, website=False):
-        """ Validate path_in, path_out, and AWS credentials """
+    def __init__(self, paths_in=None, path_out=None, options=None):
+        """ Validate paths_in, path_out, and AWS credentials, and set config/ignore 
+        
+            paths_in is either a single file or directory, or a lists of files and directories
+            if path_out is not specified, a bucket name must exist in path in.
+        """
 
-        self.path_in = path_in
+        self.paths_in = paths_in
         self.path_out = path_out
-        self.website = website
-        self.is_dir = True
+        self.options = options
+        self.is_dir = False # remove
         self.bucket_name = None
         self.key_name = ""
-        self.files = []
-        self.paths = {}
 
         # NEED TO REFACTOR TO CONFIG DICTIONARY
         # set ignore patterns
@@ -58,36 +57,38 @@ class StaticBuilder(object):
         #   Validate and set path_in
         #
 
-        # Check if path_in equals None, yes => path_in = cwd
-        if not path_in:
-            path_in = os.getcwd()
+        # Check if path_in equals None, yes => paths_in = cwd
+        if not self.paths_in:
+            self.paths_in.append(os.getcwd())
             self.is_dir = True
 
-        # Check if path_in exists
-        elif not os.path.exists(path_in):
-            print "Local path doesn't exist"
-            help()
-            sys.exit()
+        # Else check that the paths_in exist.
+        else:
+            if not type(self.paths_in) == types.ListType:
+                self.paths_in = [self.paths_in]
+            for path in self.paths_in:
+                if not os.path.exists(path):
+                    print ("error: local path doesn't exist: " + path)
 
         # Check if path_in is a directory
-        elif os.path.isdir(path_in):
-            self.is_dir = True
+        #elif os.path.isdir(path_in):
+        #    self.is_dir = True
 
         # Check if path_in is a file
-        elif os.path.isfile(path_in):
-            self.is_dir = False
+        #elif os.path.isfile(path_in):
+        #    self.is_dir = False
 
         # How did you get here?
-        else:
-            print 'How did you get here?'
+        #else:
+        #    print 'How did you get here?'
 
         # pull apart path_in
-        head, tail = os.path.split(path_in)
+        head, tail = os.path.split(self.paths_in[0])
 
         # If head none add current working directory
         if not head:
-            self.path_in = os.path.join(os.getcwd(), tail)
-            head, tail = os.path.split(self.path_in)
+            self.paths_in[0] = os.path.join(os.getcwd(), tail)
+            head, tail = os.path.split(self.paths_in[0])
         
         #self.bucket_name = tail
         #print "Head: " + head
@@ -102,7 +103,7 @@ class StaticBuilder(object):
         # Check credentials - should be saved in .bashrc or other environment
         connection = boto.connect_s3()
         
-	# Exit if the AWS information was not correct
+    # Exit if the AWS information was not correct
         try:
             buckets = connection.get_all_buckets()
         except:
@@ -117,7 +118,7 @@ class StaticBuilder(object):
         if not self.path_out:
 
             # Normalize path_in
-            normal_path = os.path.normpath(self.path_in)
+            normal_path = os.path.normpath(self.paths_in[0])
 
             # Split path_in check for bucket name
             path_parts = normal_path.split("/")
@@ -151,7 +152,7 @@ class StaticBuilder(object):
                         connection.create_bucket(self.bucket_name)
 
         # If path_out check that it contains a bucket name
-        if path_out:
+        else:
 
             # Set key name to tail of path in
             #self.key_name = tail
@@ -174,8 +175,7 @@ class StaticBuilder(object):
                     self.bucket_name = bucketname
                     connection.create_bucket(self.bucket_name)
 
-            # If no bucket name in path out ask if want to create bucket named tail
-
+        # if path_out is None, key should be empty
         #print "Bucket name: " + self.bucket_name
         #print "Key name: " + self.key_name        
         #print buckets
@@ -198,38 +198,119 @@ class StaticBuilder(object):
              help()
              sys.exit()
 
-        # If path_in is a directory, scan recursively
-        if self.is_dir:
-            files = fileList(self.path_in, folders=True)
-
-            # remove initial path and save to self.files
-            for file in files:
-                print file
-                print self.path_in
-                file = file.replace( self.path_in + '/', '')
-                self.files.append(file)
-        
-        # Else it's a file so add key to files and erase
-        elif self.files == []:
-            self.files.append(self.key_name)
-            self.path_in = self.path_in.replace(self.key_name, "")
-            self.key_name = ""
-
-        else: 
-            print "You shouldn't be here dude!"
-
         # Connect to S3 and create the bucket
         connection = boto.connect_s3()
-        cwd = os.getcwd()
         bucket = connection.get_bucket(self.bucket_name)
+        buckets = connection.get_all_buckets()
+
+        files = []
+        path_in = {}
+        for path in self.paths_in:
+
+            # If no path_out then only one path in, so check path_in parts for a bucket name
+            if not self.path_out:
+                self.key_name = ""
+                self.bucket_name = None
+                files.append("")
+                connection = boto.connect_s3()
+
+                # Normalize path_in
+                normal_path = os.path.normpath(self.paths_in[0])
+
+                # Split path_in check for bucket name
+                path_parts = normal_path.split("/")
+
+                #print path_parts
+                for path_part in path_parts:
+                    #print path_part
+
+                    if self.bucket_name == None:
+                        for bucket in buckets:
+                            #print bucket.name
+                            if path_part == bucket.name:
+                                self.bucket_name = bucket.name
+                    else:
+                        # Once found bucket name, remaining parts of path are are the key
+                        files[0] = os.path.join(files[0], path_part)
+            
+                path_in[files[0]] = path
+                # If still no bucket name, then error if file, else ask to create
+                if not self.bucket_name:
+                    if not self.is_dir:
+                        print "Must give a bucket name with a file"
+                        help()
+                        sys.exit()
+                    else:
+                        create = raw_input('Would you like to create a bucket named "' + tail + '" [y/n]: ')
+                        if not create == 'y' or create == 'yes':
+                            print "No buckets to create, terminating."
+                            help()
+                            sys.exit()
+                        else:
+                            self.bucket_name = tail
+                            connection.create_bucket(self.bucket_name)
+                
+                break
+
+            # file          => head=None , tail=file
+            # path/in/file  => head=path/in/ , tail=file
+            # path/in       => head=path/ , tail=in (dir)
+            # path/in/      => head=path/in/ , tail=None
+            # never a slash in tail: empty if path ends in /
+            head, tail = os.path.split(path)
+ 
+            # if no path out, then only one path in
+
+            # if tail is empty then path is a directory so remove / and split again
+            if tail == "":
+                path = path.rstrip('/')
+                head, tail = os.path.split(path)
+
+            # if tail == file
+            if os.path.isfile(path):
+                files.append(tail)
+                path_in[tail] = path  
+            # else tail == directory
+            else:
+                temp_files = fileList(path, folders=self.options.recursive)
+                for file in temp_files:
+                    path_in[file] = os.path.join(path, file)
+                    files.append(file)
+            
+        print files
+        print path_in
+        # If paths_in is a directory, scan recursively
+        #if self.is_dir:
+        #    files = fileList(self.paths_in, folders=self.options.recursive)
+
+        #    # remove initial path and save to self.files
+        #    for file in files:
+        #        print file
+        #        #print self.paths_in
+        #        file = file.replace( self.paths_in[0] + '/', '')
+        #        self.files.append(file)
+        
+        # Else it's a file so add key to files and erase
+        #elif self.files == []:
+        #    self.files.append(self.key_name)
+        #    self.path_in = self.paths_in[0].replace(self.key_name, "")
+        #    self.key_name = ""
+
+        #else: 
+        #    print "You shouldn't be here dude!"
+
+        cwd = os.getcwd()
 
         print 'Adding to bucket: ' + self.bucket_name
-        for file in self.files:
+        bucket = connection.get_bucket(self.bucket_name)
+
+        for file in files:
             key = os.path.join(self.key_name, file)
 
             print "key: " + key
             
-            # Ignore file expressions
+            # Skip if type of file to ignore
+            # TODO - MOVE THIS VALIDATION EARLIER
             ignore = False
             for exp in self.ignorefiles:
                 if fnmatch.fnmatch(file, exp):
@@ -242,21 +323,23 @@ class StaticBuilder(object):
             # Add the key to the bucket
             k = Key(bucket)
             k.key = key
+
             # if is a file, set content
             #file_name = cwd
 
-            file_name = self.path_in
+            file_name = path_in[file]
 
-            #print "File name at start: " + file_name
+            print "File name at start: " + file_name
             #print "Path in: " + self.path_in
             #print "Bucket name: " + self.bucket_name
             #if not self.bucket_name in file_name:
             #    file_name = os.path.join(cwd, self.bucket_name)
-            file_name = os.path.join(file_name, file)
+            #file_name = os.path.join(file_name, file)
             #print "File name at end: " + file_name
             if os.path.isfile(file_name):
                 print "added as file"
                 k.set_contents_from_filename(file_name)
+                print "finished"
 
         # Else uploading a single file so just add key name
         #else:
@@ -273,21 +356,24 @@ def fileList(paths, relative=False, folders=False):
 
     files = []
 
-    for path in paths:  
-        for fileName in os.listdir(path):
+    for path in paths: 
+        if os.path.isdir(path):
+            for fileName in os.listdir(path):
 
-            # Ignore hidden files
-            if fileName.startswith('.'):
-                continue
+                # Ignore hidden files
+                if fileName.startswith('.'):
+                    continue
 
-            filePath = os.path.join(path, fileName)
+                filePath = os.path.join(path, fileName)
             
-            if os.path.isdir(filePath):
-                if folders:
+                if os.path.isdir(filePath):
+                    if folders:
+                        files.append(filePath)
+                        files += fileList(filePath, folders=folders)
+                else:
                     files.append(filePath)
-                    files += fileList(filePath, folders=folders)
-            else:
-                files.append(filePath)
+        else:
+            files.append(path)
 
         if relative:
              files = map(lambda x: x[len(path)+1:], files)
@@ -313,35 +399,37 @@ def exit(msg):
 
 def main():
 
-    # Three arguments: path, bucket_name, and website boolean
-    path_in = sys.argv[1] if len(sys.argv) > 1 else None
-    path_out = sys.argv[2] if len(sys.argv) > 2 else None
-    website = sys.argv[3] if len(sys.argv) > 3 else None
-    
-    # If no path set current working directory as the path
-    if not path_in:
-        path_in = os.getcwd()
-        
-    # Check if path is for help
-    elif path_in == "-help" or path_in == "--help" or path_in == "help":
-        print "Requesting help"
-        help()
-        sys.exit(2)
+    # Parse command line options and arguments.
+    usage = "usage: %prog [options] [paths_in] [bucket/path_out]"
+    parser = OptionParser(usage)
+    parser.add_option("-r", "-R", "--recursive", action="store_true",
+                      dest="recursive", default=False,
+                      help="Copy directory recursively [default: %default]")
+    (options, args) = parser.parse_args()
 
-    # Check if path exists
-    elif not os.path.exists(path_in):
-        print "Local path doesn't exist"
-        help()
-        sys.exit(1)
+    paths_in = []
 
-    # Make sure website is boolean
-    if not (website == None or website == True or website == False):
-        print "Website is a boolean"
-        help()
-        sys.exit(3)
+    # Check and set arguments.
+    if len(args) > 2:
+        for arg in args:
+            paths_in.append(arg)
+        path_out = path_in.pop() # last item is path_out
+    else:
+        paths_in.append(args[0]) if len(args) > 0 else None
+        path_out = args[1] if len(args) == 2 else None
 
-    # path_in exists so create and run builder
-    sb = StaticBuilder(path_in, path_out, website)
+    # If no paths_in, set current working directory as the paths_in.
+    if not paths_in:
+        paths_in.append(os.getcwd())
+
+    # Else check that the paths_in exist.
+    else:
+        for path in paths_in:
+            if not os.path.exists(path):
+                parser.error("local path doesn't exist: " + path)
+
+    # paths_in exists so create and run builder
+    sb = StaticBuilder(paths_in, path_out, options)
     sb.upload()
 
 if __name__ == "__main__":
