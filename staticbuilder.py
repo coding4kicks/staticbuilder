@@ -28,7 +28,12 @@ class StaticBuilder(object):
             or a lists of files and directories
             if path_out is not specified, a bucket name must exist in path in.
         """
-
+        if paths_in: 
+            print "paths_in"
+            print paths_in
+        if path_out:
+            print "path_out"
+            print path_out
         self.paths_in = paths_in
         self.path_out = path_out
         self.options = options
@@ -48,8 +53,7 @@ class StaticBuilder(object):
         # Check if path_in equals None, yes => paths_in = cwd
         if not self.paths_in:
             self.paths_in.append(os.getcwd())
-            print "CWD: " + os.getcwd()
-            #self.is_dir = True
+            head, self.path_out = os.path.split(self.paths_in[0])
 
         # Else check that the paths_in exist.
         else:
@@ -82,6 +86,8 @@ class StaticBuilder(object):
         if self.path_out:
             normal_path = os.path.normpath(self.path_out)
             bucketname, d, key_name = normal_path.partition("/")
+            print "bucket name: " + bucketname
+            print "key name: " + key_name
             for bucket in buckets:
                 if bucket.name == bucketname:
                     bucket_name = bucketname
@@ -151,7 +157,11 @@ class StaticBuilder(object):
             # path/in/      => head=path/in/ , tail=None
             # never a slash in tail: empty if path ends in /
             head, tail = os.path.split(path)
- 
+            print "head: " + head
+            print "tail: " + tail
+            print "bucket name1: " + bucket_name
+            print "key name1: " + key_name
+            print "path: " + path
             # if tail is empty then path is a directory 
             # so remove / and split again
             if tail == "":
@@ -168,7 +178,12 @@ class StaticBuilder(object):
                 temp_files = fileList(path, folders=self.options.recursive)
                 for file in temp_files:
                     temp_path_in = file
-                    file = file.replace(head + "/", "")
+
+                    # Works for directory???
+                    #file = file.replace(head + "/", "")
+                    # Works for cwd when no arguments
+                    file = file.replace(path + "/", "")
+
                     #file = os.path.join(head, file)
                     print file
                     print path
@@ -276,6 +291,7 @@ def main():
     # If no paths_in, set current working directory as the paths_in.
     if not paths_in:
         paths_in.append(os.getcwd())
+        head, path_out = os.path.split(paths_in[0])
 
     # Else check that the paths_in exist.
     else:
