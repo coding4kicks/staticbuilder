@@ -176,28 +176,53 @@ class StaticBuilder(object):
             # Add the key to the bucket
             k = Key(bucket)
             k.key = key
-            k = bucket.get_key(key)
+            #k = bucket.get_key(key)
+            #if k:
+            #    print "hidy ho"
+            #    hash_remote = k.get_metadata('hash')
+            #    print hash_remote
+            #else:
+            #    k = Key(bucket)
+            #    k.key = key
             file_name = path_in[file]
-            print "bucket: " + str(bucket)
-            print k
-            print key
-            print "file: " + file
-            print "filename: " + file_name
-            if os.path.isfile(file_name) and uploadRequired(file_name, k):
+            #hash_local = getHash(file_name)
+            #print "bucket: " + str(bucket)
+            #print k
+            #print key
+            #print "file: " + file
+            #print "filename: " + file_name
+            #print "hash local: " + hash_local
+            #print "hash rem: " + hash_remote
+            if os.path.isfile(file_name): # and uploadRequired(hash_local, k):
                 print "added files: " + file
+                #print k
+                #print k.key
                 k.set_contents_from_filename(file_name)
+                #k.set_metadata('hash', hash_local)
+                #s = k.get_metadata('hash')
+                #print s
+                #print "here"
+
 
 # TODO: make helper functions module private
-def uploadRequired(path, key):
+def uploadRequired(hash_local, key):
     """ Return True if hash changed """
-    hashLocal = getHash(path)
-    hashRemote = key.get_metadata('hash') 
-    if hashLocal == hashRemote:
+    #if not key:
+    #    return True
+    print key
+    if key:
+        hash_remote = key.get_metadata('hash') 
+        print hash_remote
+    else:
+        return True
+
+    print "rem: " + hash_remote
+    print "loc: " + hash_local
+    if hash_local == hash_remote:
         print "No Upload"
         return False
     else:
         print "Upload"
-        key.set_metadata('hash', hashLocal)
         return True
 
 def getHash(filePath):
