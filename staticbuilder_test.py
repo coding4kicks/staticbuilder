@@ -13,9 +13,6 @@ def test():
 
     print "Testing SB from the command line"
 
-    # Test that with no argument, SB copies the current directory.
-    #print "Testing with no arguments."
-
     # Test bad local path.
     print "Testing bad local path"
     cmd = "python staticbuilder.py \

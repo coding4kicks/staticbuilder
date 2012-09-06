@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-import sys
 import os
+import sys
 import types
 import fnmatch
+import hashlib
 from optparse import OptionParser
 
 import boto
@@ -13,7 +14,7 @@ from boto.s3.key import Key
 class StaticBuilder(object):
     """ Static Builder - "Mo' Static, Less Hassle"
 
-        Uploads contents to S3. Similar to unix cp.
+        Uploads content to S3. Similar to unix cp.
         Can operate recusively on directories.  
         Checks hash so as to only upload modified content.
         Import and use as an object or run from the command line.
@@ -157,15 +158,11 @@ class StaticBuilder(object):
                     path_in[file] = temp_path_in
                     files.append(file)
 
-        cwd = os.getcwd()
-        bucket = connection.get_bucket(bucket_name)
-
         # Upload all the files
+        bucket = connection.get_bucket(bucket_name)
         for file in files:
             key = os.path.join(key_name, file)
 
-            print "key: " + key
-            
             # Skip if type of file to ignore
             # TODO - MOVE THIS VALIDATION EARLIER
             ignore = False
@@ -179,13 +176,42 @@ class StaticBuilder(object):
             # Add the key to the bucket
             k = Key(bucket)
             k.key = key
-
+            k = bucket.get_key(key)
             file_name = path_in[file]
-            if os.path.isfile(file_name):
-                print "added as file"
+            print "bucket: " + str(bucket)
+            print k
+            print key
+            print "file: " + file
+            print "filename: " + file_name
+            if os.path.isfile(file_name) and uploadRequired(file_name, k):
+                print "added files: " + file
                 k.set_contents_from_filename(file_name)
 
 # TODO: make helper functions module private
+def uploadRequired(path, key):
+    """ Return True if hash changed """
+    hashLocal = getHash(path)
+    hashRemote = key.get_metadata('hash') 
+    if hashLocal == hashRemote:
+        print "No Upload"
+        return False
+    else:
+        print "Upload"
+        key.set_metadata('hash', hashLocal)
+        return True
+
+def getHash(filePath):
+    """md5 hash of file"""
+    file = open(filePath, 'rb')
+    m = hashlib.md5()
+    while True:
+        data = file.read(8192)
+        if not data:
+            break
+        m.update(data)
+    return m.hexdigest()
+
+
 def fileList(paths, relative=False, folders=False):
     """ Generate a recursive list of files from a given path. """
 
@@ -211,7 +237,8 @@ def fileList(paths, relative=False, folders=False):
 
         # TODO - remove or use?
         if relative:
-             files = map(lambda x: x[len(path)+1:], files)
+            print "I should never ever see you around here! Please..."
+            files = map(lambda x: x[len(path)+1:], files)
 
     return files
 
