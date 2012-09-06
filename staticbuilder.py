@@ -174,35 +174,31 @@ class StaticBuilder(object):
                 continue
 
             # Add the key to the bucket
-            k = Key(bucket)
-            k.key = key
-            #k = bucket.get_key(key)
-            #if k:
-            #    print "hidy ho"
-            #    hash_remote = k.get_metadata('hash')
-            #    print hash_remote
-            #else:
-            #    k = Key(bucket)
-            #    k.key = key
+            #k = Key(bucket)
+            #k.key = key
             file_name = path_in[file]
-            #hash_local = getHash(file_name)
-            #print "bucket: " + str(bucket)
-            #print k
-            #print key
-            #print "file: " + file
-            #print "filename: " + file_name
-            #print "hash local: " + hash_local
-            #print "hash rem: " + hash_remote
-            if os.path.isfile(file_name): # and uploadRequired(hash_local, k):
-                print "added files: " + file
-                #print k
-                #print k.key
-                k.set_contents_from_filename(file_name)
-                #k.set_metadata('hash', hash_local)
-                #s = k.get_metadata('hash')
-                #print s
-                #print "here"
-
+            if os.path.isfile(file_name):
+                hash_local = getHash(file_name)
+                k = bucket.get_key(key)
+                uploadRequired = True
+                if k:
+                    hash_remote = k.get_metadata('hash')
+                    if hash_remote == hash_local:
+                        uploadRequired = False
+                        print "No upload"
+                    else:
+                        k.set_metadata('hash', hash_local)
+                else:
+                    k = Key(bucket)
+                    k.key = key
+                    k.set_metadata('hash', hash_local)
+                
+                if uploadRequired:
+                    print "added files: " + file
+                    k.set_contents_from_filename(file_name)
+            else:
+                k = Key(bucket)
+                k.key = key
 
 # TODO: make helper functions module private
 def uploadRequired(hash_local, key):

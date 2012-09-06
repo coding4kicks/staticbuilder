@@ -13,68 +13,68 @@ def test():
 
     print "Testing SB from the command line"
 
-    # Test bad local path.
-    print "Testing bad local path"
-    cmd = "python staticbuilder.py \
-           ~/projects/staticbuilder/sb_test_bucket/file0.txt"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 2
+#    # Test bad local path.
+#    print "Testing bad local path"
+#    cmd = "python staticbuilder.py \
+#           ~/projects/staticbuilder/sb_test_bucket/file0.txt"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 2
+#
+#    # Test that an absolute file path in works.
+#    print "Testing single in path, absolute."
+#    cmd = "python staticbuilder.py \
+#           ~/projects/staticbuilder/sb_test_bucket/testfile0.txt"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+#
+#    # Test that a relative file path in works.
+#    print "Testing single in path, relative."
+#    cmd = "python staticbuilder.py \
+#           sb_test_bucket/testdir1/testfile1.txt"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+#
+#    # Test that out path works.
+#    print "Testing out path."
+#    cmd = "python staticbuilder.py \
+#           sb_test_bucket/testdir1/testfile1.txt sb_test_bucket"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+#
+#    # Test that two in-paths work.
+#    print "Testing two in paths."
+#    cmd = "python staticbuilder.py \
+#           sb_test_bucket/testfile2in1.txt \
+#           sb_test_bucket/testfile2in2.txt \
+#           sb_test_bucket"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+#
+#    # Test that three in-paths work - no more after this!.
+#    print "Testing three in paths."
+#    cmd = "python staticbuilder.py \
+#           sb_test_bucket/testdir1/testfile3in1.txt \
+#           sb_test_bucket/testdir1/testfile3in2.txt \
+#           sb_test_bucket/testfile3in3.txt \
+#           sb_test_bucket/testdir1/"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
 
-    # Test that an absolute file path in works.
-    print "Testing single in path, absolute."
-    cmd = "python staticbuilder.py \
-           ~/projects/staticbuilder/sb_test_bucket/testfile0.txt"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
-    # Test that a relative file path in works.
-    print "Testing single in path, relative."
-    cmd = "python staticbuilder.py \
-           sb_test_bucket/testdir1/testfile1.txt"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
-    # Test that out path works.
-    print "Testing out path."
-    cmd = "python staticbuilder.py \
-           sb_test_bucket/testdir1/testfile1.txt sb_test_bucket"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
-    # Test that two in-paths work.
-    print "Testing two in paths."
-    cmd = "python staticbuilder.py \
-           sb_test_bucket/testfile2in1.txt \
-           sb_test_bucket/testfile2in2.txt \
-           sb_test_bucket"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
-    # Test that three in-paths work - no more after this!.
-    print "Testing three in paths."
-    cmd = "python staticbuilder.py \
-           sb_test_bucket/testdir1/testfile3in1.txt \
-           sb_test_bucket/testdir1/testfile3in2.txt \
-           sb_test_bucket/testfile3in3.txt \
-           sb_test_bucket/testdir1/"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
-    # Test a directory - not recursive
-    print "Testing directory - no recursion"
-    cmd = "python staticbuilder.py \
-           sb_test_bucket/testdir1/testdir2 \
-           sb_test_bucket/testdir1/testdir2"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
-    # Test a directory - recursive
-    print "Testing directory - with recursion"
-    cmd = "python staticbuilder.py -r \
-           sb_test_bucket/testdir1/testdir2 \
-           sb_test_bucket/testdir1/testdir2"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
+#    # Test a directory - not recursive
+#    print "Testing directory - no recursion"
+#    cmd = "python staticbuilder.py \
+#           sb_test_bucket/testdir1/testdir2 \
+#           sb_test_bucket/testdir1/testdir2"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+#
+#    # Test a directory - recursive
+#    print "Testing directory - with recursion"
+#    cmd = "python staticbuilder.py -r \
+#           sb_test_bucket/testdir1/testdir2 \
+#           sb_test_bucket/testdir1/testdir2"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
 
     # Test no arguments - should upload cwd
     print "Testing no arguments"
@@ -83,13 +83,13 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
-    # Test no arguments with recursion
-    print "Testing no arguments"
-    #os.chdir("sb_test_bucket")
-    cmd = "python ../staticbuilder.py -R"
-    ret = subprocess.call(cmd, shell=True)
-    assert ret == 0
-
+#    # Test no arguments with recursion
+#    print "Testing no arguments"
+#    #os.chdir("sb_test_bucket")
+#    cmd = "python ../staticbuilder.py -R"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+#
     #print "Testing no upload of unchanged content."
 
     # TODO - add options and tests
