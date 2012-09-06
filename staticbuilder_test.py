@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import subprocess
+import os
 
 def test():
     """Test harness for static builder.
@@ -64,29 +65,34 @@ def test():
 #    assert ret == 0
 #
 #    # Test a directory - not recursive
-#    print "Testing directory"
+#    print "Testing directory - no recursion"
 #    cmd = "python staticbuilder.py \
 #           sb_test_bucket/testdir1/testdir2 \
 #           sb_test_bucket/testdir1/"
 #    ret = subprocess.call(cmd, shell=True)
 #    assert ret == 0
 
-    # Test a directory - recursive
-    print "Testing directory"
-    cmd = "python staticbuilder.py -r \
-           sb_test_bucket/testdir1/testdir2 \
-           sb_test_bucket/testdir1/"
+#    # Test a directory - recursive
+#    print "Testing directory - with recursion"
+#    cmd = "python staticbuilder.py -r \
+#           sb_test_bucket/testdir1/testdir2 \
+#           sb_test_bucket/testdir1/"
+#    ret = subprocess.call(cmd, shell=True)
+#    assert ret == 0
+
+    # Test no arguments - should upload cwd
+    print "Testing no arguments"
+    os.chdir("sb_test_bucket")
+    #precmd = "cd sb_test_bucket"
+    #subprocess.call(precmd, shell=True)
+    cmd = "python ../staticbuilder.py"
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
-    #print "Testing in and out path, out path relative."
 
     #print "Testing no upload of unchanged content."
 
     # TODO - add options and tests
-
-    # Test that SB recursively copies files
-    #print "Testing option -r (recursive)."
 
     # Test that SB can create a website profile
     #print "Testing option -w (website)."
@@ -113,7 +119,6 @@ def test():
     #print "Testing option -f (force)."
 
     print "Complete SB test from command line."
-
 
 
 if __name__ == "__main__":

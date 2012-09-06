@@ -48,6 +48,7 @@ class StaticBuilder(object):
         # Check if path_in equals None, yes => paths_in = cwd
         if not self.paths_in:
             self.paths_in.append(os.getcwd())
+            print "CWD: " + os.getcwd()
             #self.is_dir = True
 
         # Else check that the paths_in exist.
@@ -68,12 +69,11 @@ class StaticBuilder(object):
 
     def upload(self):
         """ Upload files to S3 """
-
         files = []          # file name to save to AWS
         path_in = {}        # local path to file
         key_name = ""       # Extra key info to add to each file
         bucket_name = None  # Bucket to save files to
-
+    
         # Connect to S3 and get the buckets
         connection = boto.connect_s3()
         buckets = connection.get_all_buckets()
@@ -109,6 +109,7 @@ class StaticBuilder(object):
 
                 # Split apart path_in and check-for/set bucket name
                 normal_path = os.path.normpath(self.paths_in[0])
+                print "normal path: " + normal_path
                 path_parts = normal_path.split("/")
                 for path_part in path_parts:
                     if bucket_name == None:
@@ -118,7 +119,7 @@ class StaticBuilder(object):
                     else:
                         # Once found bucket name, remaining parts of path are are the key
                         files[0] = os.path.join(files[0], path_part)
-            
+                print "File 0: " + files[0]
                 # Set path to local file
                 path_in[files[0]] = path
 
@@ -220,7 +221,6 @@ class StaticBuilder(object):
             if os.path.isfile(file_name):
                 print "added as file"
                 k.set_contents_from_filename(file_name)
-                print "finished"
 
 # TODO: make helper functions module private
 def fileList(paths, relative=False, folders=False):
