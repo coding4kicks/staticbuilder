@@ -8,8 +8,7 @@ def test():
     
        Checks SB both as imported object and command line utility.
        Test paths must be set up correctly:
-       sb_test_bucket -> testfile0.txt, testdir1 -> 
-       testfile1.txt, testdir2 -> testfile3.txt (TODO: UPDATE)
+       (TODO: UPDATE correct structure here or readme?)
     """
 
     print "Testing SB from the command line"
