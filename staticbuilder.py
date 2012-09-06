@@ -174,8 +174,6 @@ class StaticBuilder(object):
                 continue
 
             # Add the key to the bucket
-            #k = Key(bucket)
-            #k.key = key
             file_name = path_in[file]
             if os.path.isfile(file_name):
                 hash_local = getHash(file_name)
@@ -201,26 +199,6 @@ class StaticBuilder(object):
                 k.key = key
 
 # TODO: make helper functions module private
-def uploadRequired(hash_local, key):
-    """ Return True if hash changed """
-    #if not key:
-    #    return True
-    print key
-    if key:
-        hash_remote = key.get_metadata('hash') 
-        print hash_remote
-    else:
-        return True
-
-    print "rem: " + hash_remote
-    print "loc: " + hash_local
-    if hash_local == hash_remote:
-        print "No Upload"
-        return False
-    else:
-        print "Upload"
-        return True
-
 def getHash(filePath):
     """md5 hash of file"""
     file = open(filePath, 'rb')
