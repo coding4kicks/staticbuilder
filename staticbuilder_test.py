@@ -94,20 +94,28 @@ def test():
 
     # TODO - add options and tests
 
-    # Test that SB can create a website profile
-    #print "Testing option -w (website)."
+    # Need ability to push to CDN
+    # Kinda Need ability to rename files
+    # Don't use config, use environmental variables.
 
-    # Test that SB can delete a file/directory
-    #print "Testing option -d (delete)."
+    # Test that SB can create a website profile ***
+    #print "Testing option -w (--website)."
 
-    # Test that SB can list all buckets
-    #print "Testing option -l (list).
+    # Test that SB can delete a file/directory *** 
+    # Use boto to delete key or bucket,
+    # but SB could delete a folder recursively
+    #print "Testing option -d (--delete)."
+
+    # Test that SB can list all buckets ***
+    # Use to list buckets or keys.
+    #print "Testing option -l (--list).
 
     # Test that SB can view and set ACLs
-    #print "Testing option -a (acl)
+    #print "Testing option -a (--access)
 
-    # Test that SB can put/place in a different region 
-    #print "Testing option -p (place/region)."
+    # Test that SB can place file in a different region ***
+    # Must be able to pull from config file (bashrc)
+    #print "Testing option -p (--place)."
 
     # Test that SB can view and set meta data
     #print "Testing option -m (metadata)."

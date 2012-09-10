@@ -45,7 +45,7 @@ class StaticBuilder(object):
                     else:
                         self.ignorefiles.append(line.strip())
 
-        # Check if path_in equals None, yes => paths_in = cwd
+        # If paths_in = None => paths_in = cwd
         if not self.paths_in:
             self.paths_in.append(os.getcwd())
             head, self.path_out = os.path.split(self.paths_in[0])
@@ -58,7 +58,7 @@ class StaticBuilder(object):
                 if not os.path.exists(path):
                     print ("error: local path doesn't exist: " + path)
         
-        # Check AWS credentials - should be saved in .bashrc or other environment
+        # Check AWS credentials - should be saved in .bashrc or elsewhere
         connection = boto.connect_s3()
         try:
             buckets = connection.get_all_buckets()
@@ -242,7 +242,6 @@ def fileList(paths, relative=False, folders=False):
     return files
 
 def main():
-
     # Parse command line options and arguments.
     usage = "usage: %prog [options] [paths_in] [bucket/path_out]"
     parser = OptionParser(usage)
