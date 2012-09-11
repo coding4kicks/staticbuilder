@@ -22,42 +22,23 @@ class StaticBuilder(object):
         Only dependency is boto - https://github.com/boto/boto
     """
 
-    def __init__(self, paths_in=None, path_out=None, options=None):
+    def __init__(self):
         """ Validate paths_in, path_out, and AWS credentials, and set config/ignore 
             TODO: only check aws credentials and load config/ingore info in _init_
             paths_in is either a single file or directory,
             or a lists of files and directories
             if path_out is not specified, a bucket name must exist in path in.
         """
-        self.paths_in = paths_in
-        self.path_out = path_out
-        self.options = options
 
-        # NEED TO REFACTOR TO CONFIG DICTIONARY
-        # set ignore patterns
-        self.ignorefiles = []
+        self.ignorefiles = [] # files to ignore
+
+        # Load Configurations from environment and .gitignore
+        # TODO: set location from bashrc
+        # set ignore patterns TODO - set global
+        # TODO: set .ignore based upon in path.
         gitignore_file = os.path.join(os.getcwd(), ".gitignore")
-        if os.path.exists(gitignore_file):
-            with open(gitignore_file, 'r') as f:
-                for line in f:
-                    if line[0] == ';' or line[0] == '#' or line[0] == '!':
-                        continue
-                    else:
-                        self.ignorefiles.append(line.strip())
+        addIgnoreFile(self, gitignore_file)
 
-        # If paths_in = None => paths_in = cwd
-        if not self.paths_in:
-            self.paths_in.append(os.getcwd())
-            head, self.path_out = os.path.split(self.paths_in[0])
-
-        # Else check that the paths_in exist.
-        else:
-            if not type(self.paths_in) == types.ListType:
-                self.paths_in = [self.paths_in]
-            for path in self.paths_in:
-                if not os.path.exists(path):
-                    print ("error: local path doesn't exist: " + path)
-        
         # Check AWS credentials - should be saved in .bashrc or elsewhere
         connection = boto.connect_s3()
         try:
@@ -66,21 +47,35 @@ class StaticBuilder(object):
             print ('Invalid login credentials, must set in .bashrc')
             sys.exit(2)
 
-    def upload(self):
+    def upload(self, paths_in=None, path_out=None, options=None):
         """ Upload files to S3 """
 
         files = []          # file name to save to AWS
-        path_in = {}        # local path to file
+        path_in_dic = {}        # local path to file
         key_name = ""       # Extra key info to add to each file
         bucket_name = None  # Bucket to save files to
-    
+
+        # If paths_in = None => paths_in = cwd
+        if not paths_in:
+            paths_in = []
+            paths_in.append(os.getcwd())
+            head, path_out = os.path.split(paths_in[0])
+
+        # Else check that the paths_in exist.
+        else:
+            if not type(paths_in) == types.ListType:
+                paths_in = [paths_in]
+            for path in paths_in:
+                if not os.path.exists(path):
+                    print ("error: local path doesn't exist: " + path)
+
         # Connect to S3 and get the buckets
         connection = boto.connect_s3()
         buckets = connection.get_all_buckets()
 
         # If path_out exists check it for a bucket name
-        if self.path_out:
-            normal_path = os.path.normpath(self.path_out)
+        if path_out:
+            normal_path = os.path.normpath(path_out)
             bucketname, d, key_name = normal_path.partition("/")
             for bucket in buckets:
                 if bucket.name == bucketname:
@@ -97,14 +92,14 @@ class StaticBuilder(object):
                     connection.create_bucket(bucket_name)
 
         # Upload each path in paths_in
-        for path in self.paths_in:
+        for path in paths_in:
 
-            # If no path_out check path_in parts for a bucket name
-            if not self.path_out: 
+            # If no path_out check paths_in parts for a bucket name
+            if not path_out: 
                 files.append("") # Create an empty first file to add parts to
                 
-                # Split apart path_in and check-for/set bucket name
-                normal_path = os.path.normpath(self.paths_in[0]) # only 1 path
+                # Split apart paths_in and check-for/set bucket name
+                normal_path = os.path.normpath(paths_in[0]) # only 1 path
                 path_parts = normal_path.split("/")
                 for path_part in path_parts:
                     if bucket_name == None:
@@ -113,7 +108,7 @@ class StaticBuilder(object):
                                 bucket_name = bucket.name
                     else: # Once found bucket name, remaining parts are the key
                         files[0] = os.path.join(files[0], path_part)
-                path_in[files[0]] = path # Set path_in to local file
+                path_in_dic[files[0]] = path # Set path_in to local file
                 
                 if not bucket_name:
                     if os.path.isfile(path): # error if file
@@ -147,15 +142,15 @@ class StaticBuilder(object):
             # if tail == file add to files
             if os.path.isfile(path):
                 files.append(tail)
-                path_in[tail] = path 
+                path_in_dic[tail] = path 
 
             # else tail == directory so add files in folder (maybe recursively)
             else:
-                temp_files = fileList(path, folders=self.options.recursive)
+                temp_files = fileList(path, folders=options.recursive)
                 for file in temp_files:
                     temp_path_in = file
                     file = file.replace(path + "/", "")
-                    path_in[file] = temp_path_in
+                    path_in_dic[file] = temp_path_in
                     files.append(file)
 
         # Upload all the files
@@ -174,7 +169,7 @@ class StaticBuilder(object):
                 continue
 
             # Add the key to the bucket
-            file_name = path_in[file]
+            file_name = path_in_dic[file]
             if os.path.isfile(file_name):
                 hash_local = getHash(file_name)
                 k = bucket.get_key(key)
@@ -199,6 +194,16 @@ class StaticBuilder(object):
                 k.key = key
 
 # TODO: make helper functions module private
+def addIgnoreFile(self, gitignore_file):
+    """ Uploads a gitignore file's contents to the ignore list """
+    if os.path.exists(gitignore_file):
+        with open(gitignore_file, 'r') as f:
+            for line in f:
+                if line[0] == ';' or line[0] == '#' or line[0] == '!':
+                    continue
+                else:
+                    self.ignorefiles.append(line.strip())
+
 def getHash(filePath):
     """md5 hash of file"""
     file = open(filePath, 'rb')
@@ -273,8 +278,8 @@ def main():
                 parser.error("local path doesn't exist: " + path)
 
     # paths_in exists so create and run builder
-    sb = StaticBuilder(paths_in, path_out, options)
-    sb.upload()
+    sb = StaticBuilder()
+    sb.upload(paths_in, path_out, options)
 
 if __name__ == "__main__":
     sys.exit(main())
