@@ -90,11 +90,36 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
+    # Test list bad bucket name
+    print "Testing option -l buckets (list buckets)"
+    os.chdir("..")
+    cmd = "python staticbuilder.py -l no_bucket"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 2
+
+    # Test that SB can list all buckets
+    print "Testing option -l buckets (list buckets)"
+    cmd = "python staticbuilder.py -l buckets"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
+    # Test that SB can list all keys in a bucket
+    print "Testing option -l sb_test_bucket (list all keys in bucket)"
+    cmd = "python staticbuilder.py -l sb_test_bucket"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
+    # Test that SB can list filtered keys
+    print "Testing option -l sb_test_bucket/testdir1 \
+           (list all keys in directory)"
+    cmd = "python staticbuilder.py -l sb_test_bucket/testdir1"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
     #print "Testing no upload of unchanged content."
 
     # TODO - add options and tests
 
-    # Need ability to push to CDN
     # Kinda Need ability to rename files
     # Don't use config, use environmental variables.
 
@@ -106,9 +131,6 @@ def test():
     # but SB could delete a folder recursively
     #print "Testing option -d (--delete)."
 
-    # Test that SB can list all buckets ***
-    # Use to list buckets or keys.
-    #print "Testing option -l (--list).
 
     # Test that SB can view and set ACLs
     #print "Testing option -a (--access)

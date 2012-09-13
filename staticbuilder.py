@@ -241,6 +241,47 @@ def fileList(paths, relative=False, folders=False):
 
     return files
 
+def listBuckets():
+    """ List all buckets for an aws account """
+    connection = boto.connect_s3()
+    buckets = connection.get_all_buckets()
+    print "S-3 Buckets:"
+    for bucket in buckets:
+      print bucket
+
+def listKeys(path):
+    """ List keys based upon a path 
+        The input path must start with a bucket name
+        If only a bucket name then prints all keys
+        If directory after bucket name, prints only keys in directory
+    """
+    connection = boto.connect_s3()
+    buckets = connection.get_all_buckets()
+    normal_path = os.path.normpath(path)
+    bucket_name, d, dir_name = normal_path.partition("/")
+
+    # Get the bucket or exit if it doesn't exist
+    no_bucket = True
+    for bucket in buckets:
+        if bucket_name == bucket.name:
+            bucket = connection.get_bucket(bucket_name)
+            no_bucket = False
+            break
+    if no_bucket:
+        print "Must specify bucket name in path"
+        sys.exit(2)
+
+    # Get the keys and print if not filtered
+    keys = bucket.list()
+    print "Keys in bucket: " + bucket_name
+    print "Filtered by: " + (dir_name or "nothing")
+    for key in keys:
+        if dir_name == "":
+            print key
+        else:
+            if dir_name in key.name:
+                 print key
+
 def main():
     # Parse command line options and arguments.
     usage = "usage: %prog [options] [paths_in] [bucket/path_out]"
@@ -248,10 +289,23 @@ def main():
     parser.add_option("-r", "-R", "--recursive", action="store_true",
                       dest="recursive", default=False,
                       help="Copy directory recursively [default: %default]")
+    parser.add_option("-l", "-L", "--list", action="store",
+                      dest="list", default="", help="List 'buckets' or key path")
+
     (options, args) = parser.parse_args()
 
     paths_in = []
-
+  
+    # handle option for listing buckets and keys
+    if options.list:
+        if options.list == "buckets":
+            # list buckets
+            listBuckets()
+        else:
+            # list keys in path
+            listKeys(options.list)
+        sys.exit(0)
+           
     # Check and set arguments.
     if len(args) > 2:
         for arg in args:
