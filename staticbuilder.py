@@ -32,15 +32,15 @@ class StaticBuilder(object):
         # set ignore patterns TODO - set global
         # TODO: set .ignore based upon in path.
         gitignore_file = os.path.join(os.getcwd(), ".gitignore")
-        addIgnoreFile(self, gitignore_file)
+        _addIgnoreFile(self, gitignore_file)
         gitignore_file = os.path.join(os.getcwd(), ".git/info/exclude")
-        addIgnoreFile(self, gitignore_file)
+        _addIgnoreFile(self, gitignore_file)
         gitignore_file = "~/.gitignore_global"
-        addIgnoreFile(self, gitignore_file)
+        _addIgnoreFile(self, gitignore_file)
         # Check folder above for case of no input
         gitignore_file = os.path.join(os.getcwd(), "..")
         gitignore_file = os.path.join(gitignore_file, ".gitignore")
-        addIgnoreFile(self, gitignore_file)
+        _addIgnoreFile(self, gitignore_file)
         gitignore_file = os.path.join(os.getcwd(), "..")
         gitignore_file = os.path.join(gitignore_file, ".git/info/exclude")
 
@@ -131,10 +131,10 @@ class StaticBuilder(object):
                 # if bucket_name exists, try to add gitignore files
                 if bucket_name:
                     gitignore_file = os.path.join(local_bucket_path, ".gitignore")
-                    addIgnoreFile(self, gitignore_file)
+                    _addIgnoreFile(self, gitignore_file)
                     gitignore_file = os.path.join(local_bucket_path, bucket_name)
                     gitignore_file = os.path.join(gitignore_file, ".gitignore")
-                    addIgnoreFile(self, gitignore_file)
+                    _addIgnoreFile(self, gitignore_file)
                 else:
                     if os.path.isfile(path): # error if file
                         print "Must give a bucket name with a file"
@@ -143,7 +143,7 @@ class StaticBuilder(object):
                         bucket_name = path_parts[len(path_parts)-1]
                         create = raw_input('Would you like to create a bucket named "' + 
                                             bucket_name + '" [y/n]: ')
-                        if not create == 'y' or create == 'yes' or create == 'Y':
+                        if not create == 'y' or not create == 'yes' or not create == 'Y':
                             print "No buckets to create, terminating."
                             sys.exit(1)
                         else:
@@ -176,7 +176,7 @@ class StaticBuilder(object):
 
             # else tail == directory so add files in folder (maybe recursively)
             else:
-                temp_files = fileList(path, folders=options.recursive)
+                temp_files = _fileList(path, folders=options.recursive)
                 for file in temp_files:
                     temp_path_in = file
                     file = file.replace(path + "/", "")
@@ -201,7 +201,7 @@ class StaticBuilder(object):
             # Add the key to the bucket
             file_name = path_in_dic[file]
             if os.path.isfile(file_name):
-                hash_local = getHash(file_name)
+                hash_local = _getHash(file_name)
                 k = bucket.get_key(key)
                 uploadRequired = True
                 if k:
@@ -224,11 +224,9 @@ class StaticBuilder(object):
                 k.key = key
 
 # TODO: make helper functions module private
-def addIgnoreFile(self, gitignore_file):
+def _addIgnoreFile(self, gitignore_file):
     """ Uploads a gitignore file's contents to the ignore list """
-    print gitignore_file
     if os.path.exists(gitignore_file):
-        print "here mothafucker"
         with open(gitignore_file, 'r') as f:
             for line in f:
                 if line[0] == ';' or line[0] == '#' or line[0] == '!':
@@ -236,7 +234,7 @@ def addIgnoreFile(self, gitignore_file):
                 else:
                     self.ignorefiles.append(line.strip())
 
-def getHash(filePath):
+def _getHash(filePath):
     """md5 hash of file"""
     file = open(filePath, 'rb')
     m = hashlib.md5()
@@ -248,7 +246,7 @@ def getHash(filePath):
     return m.hexdigest()
 
 
-def fileList(paths, relative=False, folders=False):
+def _fileList(paths, relative=False, folders=False):
     """ Generate a recursive list of files from a given path. """
 
     if not type(paths) == types.ListType:
@@ -265,7 +263,7 @@ def fileList(paths, relative=False, folders=False):
                 if os.path.isdir(filePath):
                     if folders:
                         files.append(filePath)
-                        files += fileList(filePath, folders=folders)
+                        files += _fileList(filePath, folders=folders)
                 else:
                     files.append(filePath)
         else:
@@ -278,6 +276,7 @@ def fileList(paths, relative=False, folders=False):
 
     return files
 
+# TODO: move into SB so can use as import
 def listBuckets():
     """ List all buckets for an aws account """
     connection = boto.connect_s3()
@@ -285,7 +284,7 @@ def listBuckets():
     print "S-3 Buckets:"
     for bucket in buckets:
       print bucket
-
+# TODO: move into SB so can use as import
 def listKeys(path):
     """ List keys based upon a path 
         The input path must start with a bucket name
