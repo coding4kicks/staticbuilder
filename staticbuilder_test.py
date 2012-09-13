@@ -119,8 +119,7 @@ def test():
     assert ret == 0
 
     # Test that SB can list filtered keys
-    print "Testing option -l sb_test_bucket/testdir1 \
-           (list all keys in directory)"
+    print "Testing option -l sb_test_bucket/testdir1 (list all keys in directory)"
     cmd = "python staticbuilder.py -l sb_test_bucket/testdir1"
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0

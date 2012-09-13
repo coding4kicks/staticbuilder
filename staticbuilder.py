@@ -37,6 +37,13 @@ class StaticBuilder(object):
         addIgnoreFile(self, gitignore_file)
         gitignore_file = "~/.gitignore_global"
         addIgnoreFile(self, gitignore_file)
+        # Check folder above for case of no input
+        gitignore_file = os.path.join(os.getcwd(), "..")
+        gitignore_file = os.path.join(gitignore_file, ".gitignore")
+        addIgnoreFile(self, gitignore_file)
+        gitignore_file = os.path.join(os.getcwd(), "..")
+        gitignore_file = os.path.join(gitignore_file, ".git/info/exclude")
+
 
         # Set location variable from environment or options
         self.location = "DEFAULT"
@@ -106,7 +113,7 @@ class StaticBuilder(object):
             # If no path_out check paths_in parts for a bucket name
             if not path_out: 
                 files.append("") # Create an empty first file to add parts to
-                
+                local_bucket_path = "" # Create local bucket path to find .gitignore
                 # Split apart paths_in and check-for/set bucket name
                 normal_path = os.path.normpath(paths_in[0]) # only 1 path
                 path_parts = normal_path.split("/")
@@ -115,11 +122,20 @@ class StaticBuilder(object):
                         for bucket in buckets:
                             if path_part == bucket.name:
                                 bucket_name = bucket.name
+                        if bucket_name == None:
+                            local_bucket_path = os.path.join(local_bucket_path, path_part)
                     else: # Once found bucket name, remaining parts are the key
                         files[0] = os.path.join(files[0], path_part)
                 path_in_dic[files[0]] = path # Set path_in to local file
                 
-                if not bucket_name:
+                # if bucket_name exists, try to add gitignore files
+                if bucket_name:
+                    gitignore_file = os.path.join(local_bucket_path, ".gitignore")
+                    addIgnoreFile(self, gitignore_file)
+                    gitignore_file = os.path.join(local_bucket_path, bucket_name)
+                    gitignore_file = os.path.join(gitignore_file, ".gitignore")
+                    addIgnoreFile(self, gitignore_file)
+                else:
                     if os.path.isfile(path): # error if file
                         print "Must give a bucket name with a file"
                         sys.exit(1)
@@ -342,6 +358,8 @@ def main():
     if not paths_in:
         paths_in.append(os.getcwd())
         head, path_out = os.path.split(paths_in[0])
+        print head
+        print "path out: " + path_out
 
     # Else check that the paths_in exist.
     else:
