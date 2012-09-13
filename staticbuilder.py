@@ -10,6 +10,7 @@ from optparse import OptionParser
 
 import boto
 from boto.s3.key import Key
+from boto.s3.connection import Location
 
 class StaticBuilder(object):
     """ Static Builder - "Mo' Static, Less Hassle"
@@ -22,17 +23,30 @@ class StaticBuilder(object):
         Only dependency is boto - https://github.com/boto/boto
     """
 
-    def __init__(self):
+    def __init__(self, options):
         """ Validate AWS credentials, Set config/ignore info """
 
         self.ignorefiles = [] # files to ignore
-
         # Load Configurations from environment and .gitignore
         # TODO: set location from bashrc
         # set ignore patterns TODO - set global
         # TODO: set .ignore based upon in path.
         gitignore_file = os.path.join(os.getcwd(), ".gitignore")
         addIgnoreFile(self, gitignore_file)
+        gitignore_file = os.path.join(os.getcwd(), ".git/info/exclude")
+        addIgnoreFile(self, gitignore_file)
+        gitignore_file = "~/.gitignore_global"
+        addIgnoreFile(self, gitignore_file)
+
+        # Set location variable from environment or options
+        self.location = "DEFAULT"
+        self.location = os.environ['S3_LOCATION']
+        if options.location:
+            self.location = options.location
+        # Check location exists else error
+        if not self.location in dir(Location):
+            print "Specified location is invalid."
+            sys.exit(2)
 
         # Check AWS credentials - should be saved in .bashrc or elsewhere
         connection = boto.connect_s3()
@@ -84,7 +98,7 @@ class StaticBuilder(object):
                     sys.exit(0)
                 else:
                     bucket_name = bucketname
-                    connection.create_bucket(bucket_name)
+                    connection.create_bucket(bucket_name, location=self.location)
 
         # Upload each path in paths_in
         for path in paths_in:
@@ -109,15 +123,20 @@ class StaticBuilder(object):
                     if os.path.isfile(path): # error if file
                         print "Must give a bucket name with a file"
                         sys.exit(1)
-                    else: # Ask to create (name = directory) 
+                    else: # Ask to create bucket (name = directory)
+                        bucket_name = path_parts[len(path_parts)-1]
                         create = raw_input('Would you like to create a bucket named "' + 
-                                            tail + '" [y/n]: ')
+                                            bucket_name + '" [y/n]: ')
                         if not create == 'y' or create == 'yes' or create == 'Y':
                             print "No buckets to create, terminating."
                             sys.exit(1)
                         else:
-                            bucket_name = tail
-                            connection.create_bucket(bucket_name)
+                            try:
+                                connection.create_bucket(
+                                    bucket_name, location=self.location)
+                            except e:
+                                print "Unable to create bucket"
+                                sys.exit(2)
                 break # Only 1 path_in when no path_out, so break out of for loop
            
             # Pull apart the path_in
@@ -191,7 +210,9 @@ class StaticBuilder(object):
 # TODO: make helper functions module private
 def addIgnoreFile(self, gitignore_file):
     """ Uploads a gitignore file's contents to the ignore list """
+    print gitignore_file
     if os.path.exists(gitignore_file):
+        print "here mothafucker"
         with open(gitignore_file, 'r') as f:
             for line in f:
                 if line[0] == ';' or line[0] == '#' or line[0] == '!':
@@ -291,6 +312,8 @@ def main():
                       help="Copy directory recursively [default: %default]")
     parser.add_option("-l", "-L", "--list", action="store",
                       dest="list", default="", help="List 'buckets' or key path")
+    parser.add_option("-p", "-P", "--place", action="store",
+                      dest="location", default="", help="Specify bucket location")
 
     (options, args) = parser.parse_args()
 
@@ -327,7 +350,7 @@ def main():
                 parser.error("local path doesn't exist: " + path)
 
     # paths_in exists so create and run builder
-    sb = StaticBuilder()
+    sb = StaticBuilder(options)
     sb.upload(paths_in, path_out, options)
 
 if __name__ == "__main__":

@@ -20,6 +20,15 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 2
 
+    # Test invalid location.
+    print "Testing bad local path"
+    cmd = "python staticbuilder.py \
+           -p invalid_location \
+           ~/projects/staticbuilder/sb_test_bucket"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 2
+
+
     # Test that an absolute file path in works.
     print "Testing single in path, absolute."
     cmd = "python staticbuilder.py \
@@ -137,7 +146,7 @@ def test():
 
     # Test that SB can place file in a different region ***
     # Must be able to pull from config file (bashrc)
-    #print "Testing option -p (--place)."
+    #print "Testing option -p (--place) aka location."
 
     # Test that SB can view and set meta data
     #print "Testing option -m (metadata)."
