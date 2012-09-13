@@ -26,30 +26,28 @@ class StaticBuilder(object):
     def __init__(self, options):
         """ Validate AWS credentials, Set config/ignore info """
 
-        self.ignorefiles = [] # files to ignore
+        self.ignorefiles = []     # File types to ignore
+        gitignore_files = []      # Possible paths to .gitignore files
         
-        # Check cwd and parent directory for .gitignore and .git/info/exclude
-        gitignore_file = os.path.join(os.getcwd(), ".gitignore")
-        _addIgnoreFile(self, gitignore_file)
-        gitignore_file = os.path.join(os.getcwd(), ".git/info/exclude")
-        _addIgnoreFile(self, gitignore_file)
-        gitignore_file = os.path.join(os.getcwd(), "..")
-        gitignore_file = os.path.join(gitignore_file, ".gitignore")
-        _addIgnoreFile(self, gitignore_file)
-        gitignore_file = os.path.join(os.getcwd(), "..")
-        gitignore_file = os.path.join(gitignore_file, ".git/info/exclude")
-        _addIgnoreFile(self, gitignore_file)
+        # Check cwd for .gitignore and .git/info/exclude
+        gitignore_files.append(os.path.join(os.getcwd(), ".gitignore"))
+        gitignore_files.append(os.path.join(os.getcwd(), ".git/info/exclude"))
+        # Check parent directory for ignore and exclude
+        parent_directory = os.path.join(os.getcwd(), "..")
+        gitignore_files.append(os.path.join(parent_directory, ".gitignore"))
+        gitignore_files.append(os.path.join(parent_directory, ".git/info/exclude"))
         # Check user home for global .gitignore 
-         gitignore_file = "~/.gitignore_global"
-        _addIgnoreFile(self, gitignore_file)
-
+        gitignore_files.append("~/.gitignore_global")
+        # Add all ignore file types
+        for file in gitignore_files:
+            _addIgnoreFile(self, file)
 
         # Set location variable from environment or options
         self.location = "DEFAULT"
         self.location = os.environ['S3_LOCATION']
         if options.location:
             self.location = options.location
-        # Check location exists else error
+        # Check that location exists otherwise error
         if not self.location in dir(Location):
             print "Specified location is invalid."
             sys.exit(2)
@@ -111,8 +109,10 @@ class StaticBuilder(object):
 
             # If no path_out check paths_in parts for a bucket name
             if not path_out: 
-                files.append("") # Create an empty first file to add parts to
-                local_bucket_path = "" # Create local bucket path to find .gitignore
+
+                files.append("")        # Create an empty first file to add parts to
+                local_bucket_path = ""  # Create local bucket path to find .gitignore
+
                 # Split apart paths_in and check-for/set bucket name
                 normal_path = os.path.normpath(paths_in[0]) # only 1 path
                 path_parts = normal_path.split("/")
@@ -185,10 +185,11 @@ class StaticBuilder(object):
         # Upload all the files
         bucket = connection.get_bucket(bucket_name)
         for file in files:
+
+            # Add key name from path_out to file name from paths_in
             key = os.path.join(key_name, file)
 
-            # Skip if type of file we ignore
-            # TODO - MOVE THIS VALIDATION EARLIER SO DON'T READ UNECESSARILY
+            # Skip if type of file we ignore (possibly do earlier)
             ignore = False
             for exp in self.ignorefiles:
                 if fnmatch.fnmatch(file, exp):
@@ -197,28 +198,28 @@ class StaticBuilder(object):
             if ignore:
                 continue
 
-            # Add the key to the bucket
+            # Add the key with file info to the bucket
             file_name = path_in_dic[file]
             if os.path.isfile(file_name):
                 hash_local = _getHash(file_name)
                 k = bucket.get_key(key)
                 uploadRequired = True
-                if k:
+                if k: # Key already exists
                     hash_remote = k.get_metadata('hash')
                     if hash_remote == hash_local:
                         uploadRequired = False
-                        print "No upload"
+                        print "No change: " + file
                     else:
                         k.set_metadata('hash', hash_local)
-                else:
+                else: # Create the key on S3
                     k = Key(bucket)
                     k.key = key
                     k.set_metadata('hash', hash_local)
-                
+                # Upload only if different hash
                 if uploadRequired:
-                    print "added files: " + file
+                    print "Added files: " + file
                     k.set_contents_from_filename(file_name)
-            else:
+            else: # Key is directory so just add
                 k = Key(bucket)
                 k.key = key
 
@@ -317,6 +318,8 @@ def listKeys(path):
                  print key
 
 def main():
+    """ Static Builder command line """
+
     # Parse command line options and arguments.
     usage = "usage: %prog [options] [paths_in] [bucket/path_out]"
     parser = OptionParser(usage)
