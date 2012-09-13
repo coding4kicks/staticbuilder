@@ -23,12 +23,7 @@ class StaticBuilder(object):
     """
 
     def __init__(self):
-        """ Validate paths_in, path_out, and AWS credentials, and set config/ignore 
-            TODO: only check aws credentials and load config/ingore info in _init_
-            paths_in is either a single file or directory,
-            or a lists of files and directories
-            if path_out is not specified, a bucket name must exist in path in.
-        """
+        """ Validate AWS credentials, Set config/ignore info """
 
         self.ignorefiles = [] # files to ignore
 
@@ -117,7 +112,7 @@ class StaticBuilder(object):
                     else: # Ask to create (name = directory) 
                         create = raw_input('Would you like to create a bucket named "' + 
                                             tail + '" [y/n]: ')
-                        if not create == 'y' or create == 'yes':
+                        if not create == 'y' or create == 'yes' or create == 'Y':
                             print "No buckets to create, terminating."
                             sys.exit(1)
                         else:
@@ -159,7 +154,7 @@ class StaticBuilder(object):
             key = os.path.join(key_name, file)
 
             # Skip if type of file to ignore
-            # TODO - MOVE THIS VALIDATION EARLIER
+            # TODO - MOVE THIS VALIDATION EARLIER SO DON'T READ UNECESSARILY
             ignore = False
             for exp in self.ignorefiles:
                 if fnmatch.fnmatch(file, exp):
