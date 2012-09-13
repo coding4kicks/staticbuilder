@@ -18,8 +18,8 @@ class StaticBuilder(object):
         Uploads content to S3. Similar to unix cp.
         Can operate recusively on directories.  
         Checks hash so as to only upload modified content.
-        Import and use as an object or run from the command line.
-        Plenty of options to manage your static content.
+        Import to use as an object or run from the command line.
+        Plenty of options to help manage your static content.
         Only dependency is boto - https://github.com/boto/boto
     """
 
@@ -27,22 +27,21 @@ class StaticBuilder(object):
         """ Validate AWS credentials, Set config/ignore info """
 
         self.ignorefiles = [] # files to ignore
-        # Load Configurations from environment and .gitignore
-        # TODO: set location from bashrc
-        # set ignore patterns TODO - set global
-        # TODO: set .ignore based upon in path.
+        
+        # Check cwd and parent directory for .gitignore and .git/info/exclude
         gitignore_file = os.path.join(os.getcwd(), ".gitignore")
         _addIgnoreFile(self, gitignore_file)
         gitignore_file = os.path.join(os.getcwd(), ".git/info/exclude")
         _addIgnoreFile(self, gitignore_file)
-        gitignore_file = "~/.gitignore_global"
-        _addIgnoreFile(self, gitignore_file)
-        # Check folder above for case of no input
         gitignore_file = os.path.join(os.getcwd(), "..")
         gitignore_file = os.path.join(gitignore_file, ".gitignore")
         _addIgnoreFile(self, gitignore_file)
         gitignore_file = os.path.join(os.getcwd(), "..")
         gitignore_file = os.path.join(gitignore_file, ".git/info/exclude")
+        _addIgnoreFile(self, gitignore_file)
+        # Check user home for global .gitignore 
+         gitignore_file = "~/.gitignore_global"
+        _addIgnoreFile(self, gitignore_file)
 
 
         # Set location variable from environment or options
@@ -67,7 +66,7 @@ class StaticBuilder(object):
         """ Upload files to S3 """
 
         files = []          # file name to save to AWS
-        path_in_dic = {}        # local path to file
+        path_in_dic = {}    # local path to file
         key_name = ""       # Extra key info to add to each file
         bucket_name = None  # Bucket to save files to
 
@@ -103,7 +102,7 @@ class StaticBuilder(object):
                 if not create == 'y' or create == 'yes':
                     print "No buckets to create, terminating."
                     sys.exit(0)
-                else:
+                else: # A random retard says, "hello"
                     bucket_name = bucketname
                     connection.create_bucket(bucket_name, location=self.location)
 
@@ -128,15 +127,15 @@ class StaticBuilder(object):
                         files[0] = os.path.join(files[0], path_part)
                 path_in_dic[files[0]] = path # Set path_in to local file
                 
-                # if bucket_name exists, try to add gitignore files
+                # If bucket_name exists, try to add gitignore files
                 if bucket_name:
                     gitignore_file = os.path.join(local_bucket_path, ".gitignore")
                     _addIgnoreFile(self, gitignore_file)
                     gitignore_file = os.path.join(local_bucket_path, bucket_name)
                     gitignore_file = os.path.join(gitignore_file, ".gitignore")
                     _addIgnoreFile(self, gitignore_file)
-                else:
-                    if os.path.isfile(path): # error if file
+                else: # No bucket name
+                    if os.path.isfile(path): # Error if file
                         print "Must give a bucket name with a file"
                         sys.exit(1)
                     else: # Ask to create bucket (name = directory)
@@ -155,7 +154,7 @@ class StaticBuilder(object):
                                 sys.exit(2)
                 break # Only 1 path_in when no path_out, so break out of for loop
            
-            # Pull apart the path_in
+            # SPLIT PATH - pull apart the path_in, place in head and tail
             # file          => head=None       ; tail=file
             # path/in/file  => head=path/in/   ; tail=file
             # path/in       => head=path/      ; tail=in (dir)
@@ -163,18 +162,18 @@ class StaticBuilder(object):
             # never a slash in tail: empty if path ends in /
             head, tail = os.path.split(path)
             
-            # if tail is empty then path is a directory 
+            # If tail is empty then path is a directory 
             # so remove / and split again
             if tail == "":
                 path = path.rstrip('/')
                 head, tail = os.path.split(path)
 
-            # if tail == file add to files
+            # If tail is a file add to files
             if os.path.isfile(path):
                 files.append(tail)
                 path_in_dic[tail] = path 
 
-            # else tail == directory so add files in folder (maybe recursively)
+            # Else tail is a directory so add files in folder (maybe recursively)
             else:
                 temp_files = _fileList(path, folders=options.recursive)
                 for file in temp_files:
@@ -188,7 +187,7 @@ class StaticBuilder(object):
         for file in files:
             key = os.path.join(key_name, file)
 
-            # Skip if type of file to ignore
+            # Skip if type of file we ignore
             # TODO - MOVE THIS VALIDATION EARLIER SO DON'T READ UNECESSARILY
             ignore = False
             for exp in self.ignorefiles:
@@ -223,7 +222,7 @@ class StaticBuilder(object):
                 k = Key(bucket)
                 k.key = key
 
-# TODO: make helper functions module private
+# Zee Helper Functions...
 def _addIgnoreFile(self, gitignore_file):
     """ Uploads a gitignore file's contents to the ignore list """
     if os.path.exists(gitignore_file):
@@ -244,7 +243,6 @@ def _getHash(filePath):
             break
         m.update(data)
     return m.hexdigest()
-
 
 def _fileList(paths, relative=False, folders=False):
     """ Generate a recursive list of files from a given path. """
@@ -357,16 +355,14 @@ def main():
     if not paths_in:
         paths_in.append(os.getcwd())
         head, path_out = os.path.split(paths_in[0])
-        print head
-        print "path out: " + path_out
 
-    # Else check that the paths_in exist.
+    # Check that the paths_in exist.
     else:
         for path in paths_in:
             if not os.path.exists(path):
                 parser.error("local path doesn't exist: " + path)
 
-    # paths_in exists so create and run builder
+    # paths_in exists so run upload
     sb = StaticBuilder(options)
     sb.upload(paths_in, path_out, options)
 
