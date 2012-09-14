@@ -31,7 +31,7 @@ def test():
     # Test that an absolute file path in works.
     print "Testing single in path, absolute."
     cmd = "python staticbuilder.py \
-           ~/projects/staticbuilder/sb_test_bucket/testfile0.txt"
+           /Users/scottyoung/projects/staticbuilder/sb_test_bucket/testfile0.txt"
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
@@ -98,6 +98,20 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
+    # Test deletion of a file 
+    print "Testing deletion of a file"
+    cmd = "python staticbuilder.py -f \
+           -d sb_test_bucket/testfile0.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
+    # Test deletion of a directory 
+    print "Testing deletion of a file"
+    cmd = "python staticbuilder.py -f -r \
+           -d sb_test_bucket/testdir1"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
     # Test no arguments - should upload cwd
     print "Testing no arguments - no recursion"
     os.chdir("sb_test_bucket")
@@ -136,6 +150,25 @@ def test():
     cmd = "python staticbuilder.py -l sb_test_bucket/testdir1"
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
+
+    # Test rename with too few arguments errors
+    print "Testing option -n with 0 args"
+    cmd = "python staticbuilder.py -n new_name.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 2
+
+    # Test rename with too many arguments errors
+    print "Testing option -n with 3 args"
+    cmd = "python staticbuilder.py -N new_name.text file1.txt file2.txt path/out "
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 2
+
+    # Test rename
+    print "Testing option -n rename"
+    cmd = "python staticbuilder.py --name new_name.txt sb_test_bucket/testfile0.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
 
     #print "Testing no upload of unchanged content."
 

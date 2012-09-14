@@ -90,7 +90,7 @@ class StaticBuilder(object):
                 no_bucket = False
                 break
         if no_bucket:
-            print "Must specify bucket name in path"
+            print "Must specify bucket name in path to list."
             sys.exit(2)
         
         # Get the keys and print if not filtered
@@ -103,6 +103,50 @@ class StaticBuilder(object):
             else:
                 if dir_name in key.name:
                      print key
+
+    def delete(self, options):
+        """ Delete a file or directory, options force and recursive. 
+            If no -r, assumption is a file
+            If -r assumption is a directory
+            Prompt for both if no -r
+        """
+        connection = boto.connect_s3()
+        buckets = connection.get_all_buckets()
+        normal_path = os.path.normpath(options.delete)
+        bucket_name, d, dir_name = normal_path.partition("/")
+
+        # Get the bucket or exit if it doesn't exist
+        no_bucket = True
+        for bucket in buckets:
+            if bucket_name == bucket.name:
+                bucket = connection.get_bucket(bucket_name)
+                no_bucket = False
+                break
+        if no_bucket:
+            print "Must specify bucket name in path to delete."
+            sys.exit(2)
+
+        if options.force:
+            confirmation = "y"
+        else:
+            confirmation = raw_input("Confirm you want to delete " + options.delete + " [y/n]:")
+        if not confirmation.lower() == "y" and not confirmation.lower() == "yes":
+            print "Canceling deletion."
+            sys.exit(0)
+
+        # Delete a file (one key) if not recursive
+        if not options.recursive:
+            print "Deleting: " + options.delete
+            k = Key(bucket)
+            k.key = options.delete
+            bucket.delete_key(k)
+        else: # Delete a whole director (by filter)
+            keys = bucket.list()
+            for key in keys:
+                bucket_name, d, delete_filter = options.delete.partition("/")
+                if delete_filter in key.name:
+                    print "Deleting: " + key.name
+                    bucket.delete_key(key)
 
     def upload(self, paths_in=None, path_out=None, options=None):
         """ Upload files to S3 """
@@ -271,6 +315,8 @@ class StaticBuilder(object):
                     if hash_remote == hash_local:
                         uploadRequired = False
                         print "No change: " + file
+                        if options.name:
+                            print "as " + options.name
                     else:
                         k.set_metadata('hash', hash_local)
                 else: # Create the key on S3
@@ -280,6 +326,8 @@ class StaticBuilder(object):
                 # Upload only if different hash
                 if uploadRequired:
                     print "Added files: " + file
+                    if options.name:
+                        print "as " + options.name
                     k.set_contents_from_filename(file_name)
             else: # Key is directory so just add
                 k = Key(bucket)
@@ -342,15 +390,25 @@ def main():
                       dest="recursive", default=False,
                       help="Copy directory recursively [default: %default]")
     parser.add_option("-l", "-L", "--list", action="store",
-                      dest="list", default="", help="List 'buckets' or key path")
+                      dest="list", help="List 'buckets' or key path")
     parser.add_option("-p", "-P", "--location", action="store",
-                      dest="location", default="", help="Specify bucket location")
+                      dest="location", help="Specify bucket location")
     parser.add_option("-n", "-N", "--name", action="store",
-                      dest="name", default="", help="Specify bucket location")
+                      dest="name", help="Rename uploaded file")
+    parser.add_option("-d", "-D", "--delete", action="store",
+                      dest="delete", help="Delete a file or directory")
+    parser.add_option("-f", "-F", "--force", action="store_true",
+                      dest="force", default=False,
+                      help="Force deletion or upload [default: %default]")
     (options, args) = parser.parse_args()
 
     sb = StaticBuilder(options) # Da Static Builder
-    paths_in = []               # Files and Directories to load 
+    paths_in = []               # Files and Directories to load
+
+    # Handle option for deletions
+    if options.delete:
+        sb.delete(options)
+        sys.exit(0)
   
     # Handle option for listing buckets and keys
     if options.list:
