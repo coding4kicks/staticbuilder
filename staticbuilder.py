@@ -148,6 +148,26 @@ class StaticBuilder(object):
                     print "Deleting: " + key.name
                     bucket.delete_key(key)
 
+    def website(self, options):
+        """ Make a bucket a public website - name must conform to DNS """
+        connection = boto.connect_s3()
+        buckets = connection.get_all_buckets()
+        #make sure bucket exists
+        no_bucket = True
+        for bucket in buckets:
+            if options.website == bucket.name:
+                bucket = connection.get_bucket(options.website)
+                no_bucket = False
+                break
+        if no_bucket:
+            print "Must specify bucket name to make public."
+            sys.exit(2)
+        # Set entire bucket policy
+        bucket.set_acl('public-read')
+        bucket.configure_website('index.html', 'error.html')
+        print bucket.get_website_configuration()
+            
+
     def upload(self, paths_in=None, path_out=None, options=None):
         """ Upload files to S3 """
 
@@ -324,7 +344,7 @@ class StaticBuilder(object):
                     k.key = key
                     k.set_metadata('hash', hash_local)
                 # Upload only if different hash
-                if uploadRequired:
+                if uploadRequired or options.force:
                     print "Added files: " + file
                     if options.name:
                         print "as " + options.name
@@ -332,7 +352,6 @@ class StaticBuilder(object):
             else: # Key is directory so just add
                 k = Key(bucket)
                 k.key = key
-
 
 # Zee Helper Functions...
 def _addIgnoreFile(self, gitignore_file):
@@ -400,6 +419,8 @@ def main():
     parser.add_option("-f", "-F", "--force", action="store_true",
                       dest="force", default=False,
                       help="Force deletion or upload [default: %default]")
+    parser.add_option("-w", "-W", "--website", action="store",
+                      dest="website", help="Set all keys public for a website")
     (options, args) = parser.parse_args()
 
     sb = StaticBuilder(options) # Da Static Builder
@@ -416,6 +437,11 @@ def main():
             sb.listBuckets()
         else:
             sb.listKeys(options.list)
+        sys.exit(0)
+    
+    # Handle setting public website
+    if options.website:
+        sb.website(options)
         sys.exit(0)
            
     # Check and set arguments.
