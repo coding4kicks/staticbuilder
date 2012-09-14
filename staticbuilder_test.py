@@ -28,7 +28,6 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 2
 
-
     # Test that an absolute file path in works.
     print "Testing single in path, absolute."
     cmd = "python staticbuilder.py \
@@ -69,6 +68,20 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
+    # Test for a single directory in
+    print "Testing single directory in - no recursion"
+    cmd = "python staticbuilder.py \
+           sb_test_bucket"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
+    # Test for a single sub directory recursive
+    print "Testing single directory in - with recursion"
+    cmd = "python staticbuilder.py -r \
+           sb_test_bucket/testdir1"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+
     # Test a directory - not recursive
     print "Testing directory - no recursion"
     cmd = "python staticbuilder.py \
@@ -86,14 +99,14 @@ def test():
     assert ret == 0
 
     # Test no arguments - should upload cwd
-    print "Testing no arguments"
+    print "Testing no arguments - no recursion"
     os.chdir("sb_test_bucket")
     cmd = "python ../staticbuilder.py"
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
     # Test no arguments with recursion
-    print "Testing no arguments"
+    print "Testing no arguments - with recursion"
     #os.chdir("sb_test_bucket")
     cmd = "python ../staticbuilder.py -R"
     ret = subprocess.call(cmd, shell=True)
