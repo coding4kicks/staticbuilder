@@ -30,15 +30,16 @@ class StaticBuilder(object):
         self.ignorefiles = []     # File types to ignore
         gitignore_files = []      # Possible paths to .gitignore files
         
-        # Check cwd for .gitignore and .git/info/exclude
+        # Check cwd and parent directory  for .gitignore and .git/info/exclude
         gitignore_files.append(os.path.join(os.getcwd(), ".gitignore"))
         gitignore_files.append(os.path.join(os.getcwd(), ".git/info/exclude"))
-        # Check parent directory for ignore and exclude
         parent_directory = os.path.join(os.getcwd(), "..")
         gitignore_files.append(os.path.join(parent_directory, ".gitignore"))
         gitignore_files.append(os.path.join(parent_directory, ".git/info/exclude"))
+
         # Check user home for global .gitignore 
         gitignore_files.append("~/.gitignore_global")
+
         # Add all ignore file types
         for file in gitignore_files:
             _addIgnoreFile(self, file)
@@ -48,12 +49,13 @@ class StaticBuilder(object):
         self.location = os.environ['S3_LOCATION']
         if options.location:
             self.location = options.location
+
         # Check that location exists otherwise error
         if not self.location in dir(Location):
             print "Specified location is invalid."
             sys.exit(2)
 
-        # Check AWS credentials - should be saved in .bashrc or elsewhere
+        # Check AWS credentials - should be saved in .bashrc or elsewhere in env
         connection = boto.connect_s3()
         try:
             buckets = connection.get_all_buckets()
@@ -156,7 +158,7 @@ class StaticBuilder(object):
                 local_bucket_path = ""  # Create local bucket path to find .gitignore
                 
                 # Split apart paths_in and check-for/set bucket name
-                normal_path = os.path.normpath(paths_in[0]) # only 1 path
+                normal_path = os.path.normpath(paths_in[0]) # only 1 path since no path_out
                 path_parts = normal_path.split("/")
                 for path_part in path_parts:
                     if bucket_name == None:
@@ -198,6 +200,7 @@ class StaticBuilder(object):
                 # Add path to file
                 if os.path.isfile(path):
                     path_in_dic[files[0]] = path
+
                 # Read in files if path is a directory
                 else:
                     temp_files = _fileList(path, folders=options.recursive)
@@ -207,7 +210,7 @@ class StaticBuilder(object):
                         file = os.path.join(files[0], file)
                         path_in_dic[file] = temp_path_in
                         files.append(file)
-                    #Pop the first file since it is just the directory
+                    #Pop to oblivion the first file since it is just the directory itself
                     files.pop(0)
                 break # Only 1 path_in when no path_out, so break out of for loop
             
@@ -242,6 +245,11 @@ class StaticBuilder(object):
         bucket = connection.get_bucket(bucket_name)
         for file in files:
             key = os.path.join(key_name, file)
+
+            # If renaming the file swap in the new name
+            if options.name:
+                key, d, file_name = key.rpartition("/")
+                key = os.path.join(key, options.name)
 
             # Skip if type of file we ignore (possibly do earlier)
             ignore = False
@@ -300,7 +308,7 @@ def _getHash(filePath):
         m.update(data)
     return m.hexdigest()
 
-def _fileList(paths, relative=False, folders=False):
+def _fileList(paths, folders=False):
     """ Generate a recursive list of files from a given path. """
     
     if not type(paths) == types.ListType:
@@ -308,11 +316,6 @@ def _fileList(paths, relative=False, folders=False):
 
     files = []
     for path in paths:
-        
-        #if os.path.isabs(path):
-        relative = False;
-        #else:
-        #    relative = True
         if os.path.isdir(path):
             for fileName in os.listdir(path):
                 # Ignore hidden files
@@ -322,17 +325,11 @@ def _fileList(paths, relative=False, folders=False):
                 if os.path.isdir(filePath):
                     if folders:
                         files.append(filePath)
-                        files += _fileList(filePath, relative=relative, folders=folders)
+                        files += _fileList(filePath, folders=folders)
                 else:
                     files.append(filePath)
         else:
             files.append(path)
-
-        # TODO - remove or use?
-        if relative:
-            print "I should never ever see you around here! Please..."
-            files = map(lambda x: x[len(path)+1:], files)
-
     return files
 
 def main():
@@ -348,29 +345,33 @@ def main():
                       dest="list", default="", help="List 'buckets' or key path")
     parser.add_option("-p", "-P", "--location", action="store",
                       dest="location", default="", help="Specify bucket location")
+    parser.add_option("-n", "-N", "--name", action="store",
+                      dest="name", default="", help="Specify bucket location")
     (options, args) = parser.parse_args()
 
     sb = StaticBuilder(options) # Da Static Builder
     paths_in = []               # Files and Directories to load 
   
-    # handle option for listing buckets and keys
+    # Handle option for listing buckets and keys
     if options.list:
         if options.list == "buckets":
-            # list buckets
             sb.listBuckets()
         else:
-            # list keys in path
             sb.listKeys(options.list)
         sys.exit(0)
            
     # Check and set arguments.
     if len(args) > 2:
+        if options.name:
+            parser.error("Can only change 1 file's name")
         for arg in args:
             paths_in.append(arg)
-        path_out = paths_in.pop() # last item is path_out
+        path_out = paths_in.pop() # Last item is path_out
     else:
         paths_in.append(args[0]) if len(args) > 0 else None
         path_out = args[1] if len(args) == 2 else None
+        if len(args) < 1 and options.name: # must have a file to rename
+            parser.error("Must specify a file to upload as " + options.name)
 
     # If no paths_in, set current working directory as the paths_in.
     if not paths_in:
@@ -381,7 +382,7 @@ def main():
     else:
         for path in paths_in:
             if not os.path.exists(path):
-                parser.error("local path doesn't exist: " + path)
+                parser.error("Local path doesn't exist: " + path)
 
     # paths_in exists so run upload
     sb.upload(paths_in, path_out, options)
