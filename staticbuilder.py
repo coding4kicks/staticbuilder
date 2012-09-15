@@ -12,7 +12,7 @@ import boto
 from boto.s3.key import Key
 from boto.s3.connection import Location
 
-
+# STATIC BUILDER
 class StaticBuilder(object):
     """ Static Builder - "Mo' Static, Less Hassle"
 
@@ -22,15 +22,17 @@ class StaticBuilder(object):
         Import to use as an object or run from the command line.
         Plenty of options to help manage your static content.
         Only dependency is boto - https://github.com/boto/boto
+        Warning - dir or directory name variables are really filters on S3.
     """
 
+    # CONSTRUCTOR
     def __init__(self, options):
-        """ Validate AWS credentials, Set config/ignore info """
+        """ Constructor validate AWS credentials, Set config/ignore info """
 
         self.ignorefiles = []     # File types to ignore
         gitignore_files = []      # Possible paths to .gitignore files
         
-        # Check cwd and parent directory  for .gitignore and .git/info/exclude
+        # Check cwd and parent directory for .gitignore and .git/info/exclude
         gitignore_files.append(os.path.join(os.getcwd(), ".gitignore"))
         gitignore_files.append(os.path.join(os.getcwd(), ".git/info/exclude"))
         parent_directory = os.path.join(os.getcwd(), "..")
@@ -55,7 +57,7 @@ class StaticBuilder(object):
             print "Specified location is invalid."
             sys.exit(2)
 
-        # Check AWS credentials - should be saved in .bashrc or elsewhere in env
+        # Check AWS credentials - should be saved in environment (i.e. .bashrc)
         connection = boto.connect_s3()
         try:
             buckets = connection.get_all_buckets()
@@ -63,6 +65,7 @@ class StaticBuilder(object):
             print ('Invalid login credentials, must set in .bashrc')
             sys.exit(2)
 
+    # LIST BUCKETS option
     def listBuckets(self):
         """ List all buckets for an AWS account """
         connection = boto.connect_s3()
@@ -71,6 +74,7 @@ class StaticBuilder(object):
         for bucket in buckets:
             print bucket
 
+    # LIST KEYS option
     def listKeys(self, path):
         """ List keys based upon a path 
             The input path must start with a bucket name
@@ -103,7 +107,8 @@ class StaticBuilder(object):
             else:
                 if dir_name in key.name:
                      print key
-
+    
+    # DELETE option 
     def delete(self, options):
         """ Delete a file or directory, options force and recursive. 
             If no -r, assumption is a file
@@ -143,11 +148,13 @@ class StaticBuilder(object):
         else: # Delete a whole director (by filter)
             keys = bucket.list()
             for key in keys:
+                # TODO: may be redundant w/ line 120
                 bucket_name, d, delete_filter = options.delete.partition("/")
                 if delete_filter in key.name:
                     print "Deleting: " + key.name
                     bucket.delete_key(key)
 
+    # WEBSITE option
     def website(self, options):
         """ Make a bucket a public website - name must conform to DNS """
         connection = boto.connect_s3()
@@ -166,8 +173,8 @@ class StaticBuilder(object):
         bucket.set_acl('public-read')
         bucket.configure_website('index.html', 'error.html')
         print bucket.get_website_configuration()
-            
-
+    
+    # UPLOAD
     def upload(self, paths_in=None, path_out=None, options=None):
         """ Upload files to S3 """
 
@@ -188,7 +195,7 @@ class StaticBuilder(object):
                 paths_in = [paths_in]
             for path in paths_in:
                 if not os.path.exists(path):
-                    print ("error: local path doesn't exist: " + path)
+                    print ("error: Local path doesn't exist: " + path)
 
         # Connect to S3 and get the buckets
         connection = boto.connect_s3()
@@ -348,6 +355,8 @@ class StaticBuilder(object):
                     print "Added files: " + file
                     if options.name:
                         print "as " + options.name
+                    if options.metadata:
+                        k.update_metadata(options.metadata)
                     k.set_contents_from_filename(file_name)
             else: # Key is directory so just add
                 k = Key(bucket)
@@ -374,6 +383,15 @@ def _getHash(filePath):
             break
         m.update(data)
     return m.hexdigest()
+
+def _extract_meta(metadata):
+    """ Convert metadata to Python dictionary """
+    meta_dic = {}
+    metas = metadata.split(";")  
+    for meta in metas:
+        key, d, value = meta.partition(":")
+        meta_dic[key] = value
+    return meta_dic
 
 def _fileList(paths, folders=False):
     """ Generate a recursive list of files from a given path. """
@@ -421,17 +439,21 @@ def main():
                       help="Force deletion or upload [default: %default]")
     parser.add_option("-w", "-W", "--website", action="store",
                       dest="website", help="Set all keys public for a website")
+    parser.add_option("-m", "-M", "--metadata", action="store",
+                      dest="metadata", help="Set meta data for path")
     (options, args) = parser.parse_args()
 
     sb = StaticBuilder(options) # Da Static Builder
     paths_in = []               # Files and Directories to load
 
-    # Handle option for deletions
+    # Handle option for DELETIONS 
+    # TODO- When complete put all option parts in alphabetical order:
+    # both the parser.add (above), the if option. (below) and the Method Declarations
     if options.delete:
         sb.delete(options)
         sys.exit(0)
   
-    # Handle option for listing buckets and keys
+    # Handle option for LISTING buckets and keys
     if options.list:
         if options.list == "buckets":
             sb.listBuckets()
@@ -439,11 +461,16 @@ def main():
             sb.listKeys(options.list)
         sys.exit(0)
     
-    # Handle setting public website
+    # Handle option for setting public WEBSITE
     if options.website:
         sb.website(options)
         sys.exit(0)
-           
+
+    # Convert METADATA to a Python dictionary
+    if options.metadata:
+        options.metadata = _extract_meta(options.metadata)
+        print options.metadata
+
     # Check and set arguments.
     if len(args) > 2:
         if options.name:
@@ -468,7 +495,7 @@ def main():
             if not os.path.exists(path):
                 parser.error("Local path doesn't exist: " + path)
 
-    # paths_in exists so run upload
+    # paths_in exists so run UPLOAD
     sb.upload(paths_in, path_out, options)
 
 if __name__ == "__main__":
