@@ -169,6 +169,17 @@ def test():
     ret = subprocess.call(cmd, shell=True)
     assert ret == 0
 
+    # Test metadata
+    print "Testing option -m metadata"
+    cmd = "python staticbuilder.py -m kick:ass sb_test_bucket/metadata.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
+  
+    # Test acl
+    print "Testing option -a acl"
+    cmd = "python staticbuilder.py -a public-read sb_test_bucket/public.txt"
+    ret = subprocess.call(cmd, shell=True)
+    assert ret == 0
 
     #print "Testing no upload of unchanged content."
 

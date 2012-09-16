@@ -173,7 +173,32 @@ class StaticBuilder(object):
         bucket.set_acl('public-read')
         bucket.configure_website('index.html', 'error.html')
         print bucket.get_website_configuration()
-    
+
+    # ACL option
+    def set_acl(self, path, acl):
+        """ Set the canned ACL for a path """
+        connection = boto.connect_s3()
+        buckets = connection.get_all_buckets()
+        normal_path = os.path.normpath(path)
+        bucket_name, d, dir_name = normal_path.partition("/")
+
+        # Get the bucket or exit if it doesn't exist
+        no_bucket = True
+        for bucket in buckets:
+            if bucket_name == bucket.name:
+                bucket = connection.get_bucket(bucket_name)
+                no_bucket = False
+                break
+        if no_bucket:
+            print "Must specify bucket name in path to set ACL."
+            sys.exit(2)
+
+        keys = bucket.list()
+        for key in keys:
+            if  dir_name in key.name:
+                print "Changing " + key.name + " to " + acl
+                key.set_acl(acl)
+
     # UPLOAD
     def upload(self, paths_in=None, path_out=None, options=None):
         """ Upload files to S3 """
@@ -357,6 +382,9 @@ class StaticBuilder(object):
                         print "as " + options.name
                     if options.metadata:
                         k.update_metadata(options.metadata)
+                    #if options.acl:
+                    #    k.set_acl(options.acl)
+                    #    print "Setting acl: " + options.acl
                     k.set_contents_from_filename(file_name)
             else: # Key is directory so just add
                 k = Key(bucket)
@@ -441,10 +469,12 @@ def main():
                       dest="website", help="Set all keys public for a website")
     parser.add_option("-m", "-M", "--metadata", action="store",
                       dest="metadata", help="Set meta data for path")
+    parser.add_option("-a", "-A", "--acl", action="store",
+                      dest="acl", help="Set acl policy")
     (options, args) = parser.parse_args()
 
     sb = StaticBuilder(options) # Da Static Builder
-    paths_in = []               # Files and Directories to load
+    paths_in = []               # Files and Directories to load from local
 
     # Handle option for DELETIONS 
     # TODO- When complete put all option parts in alphabetical order:
@@ -470,6 +500,16 @@ def main():
     if options.metadata:
         options.metadata = _extract_meta(options.metadata)
         print options.metadata
+
+    # Check option ACL
+    if options.acl:
+        acl_options = ("private", "public-read", "public-read-write", "authenticated-read")
+        if options.acl not in acl_options:
+            parser.error(options.acl + " is not a canned ACL policy")
+        if not len(args) == 1:
+            parser.error("Must specify 1 path to set ACLs for")
+        sb.set_acl(args[0], options.acl)
+        sys.exit(0)
 
     # Check and set arguments.
     if len(args) > 2:
