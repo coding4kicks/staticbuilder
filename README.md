@@ -24,12 +24,12 @@
 
 3. Place AWS keys and S3 location in .bashrc
 
-    AWS_ACCESS_KEY_ID='your AWS access key'
-    AWS_SECRET_ACCESS_KEY='your AWS secret key'
-    S3_LOCATION='DEFAULT'
-    export AWS_ACCESS_KEY_ID
-    export AWS_SECRET_ACCESS_KEY
-    export S3_LOCATION
+    AWS_ACCESS_KEY_ID='your AWS access key'   
+    AWS_SECRET_ACCESS_KEY='your AWS secret key'   
+    S3_LOCATION='DEFAULT'   
+    export AWS_ACCESS_KEY_ID   
+    export AWS_SECRET_ACCESS_KEY   
+    export S3_LOCATION   
 
 4. Make an alias to the file in .bashrc (recursive default)
 
@@ -57,7 +57,7 @@ Upload a directory or file
 
 Delete directory or file
 
-    sb -d path/to/delete
+    sb -d <path/to/delete>
 
 List buckets
     
