@@ -14,7 +14,8 @@ from boto.s3.connection import Location
 
 
 class StaticBuilder(object):
-    """ Static Builder - "Mo' Static, Less Hassle"
+    """ 
+        Static Builder - "Mo' Static, Less Hassle"
 
         Uploads content to S3. Similar to unix cp.
         Can operate recusively on directories.  

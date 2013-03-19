@@ -5,8 +5,10 @@ import subprocess
 
 from staticbuilder import StaticBuilder
 
+
 def test():
-    """Test harness for static builder.
+    """
+        Test harness for static builder.
     
        Checks SB both as imported object and command line utility.
        Test paths must be set up correctly:
